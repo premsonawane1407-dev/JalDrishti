@@ -1,0 +1,41 @@
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import { initSchema } from './db.js';
+import { IMAGES_DIR, UPLOADS_DIR } from './paths.js';
+import { mode } from './services/sentinelHub.js';
+import { sitesRouter } from './routes/sites.js';
+import { satelliteRouter } from './routes/satellite.js';
+import { photosRouter } from './routes/photos.js';
+import { dashboardRouter } from './routes/dashboard.js';
+
+initSchema();
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// Static: generated NDVI heatmaps and uploaded field photos.
+app.use('/images', express.static(IMAGES_DIR));
+app.use('/uploads', express.static(UPLOADS_DIR));
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', app: 'JalDrishti', satelliteMode: mode() });
+});
+
+app.use('/api/sites', sitesRouter);
+app.use('/api', satelliteRouter);
+app.use('/api', photosRouter);
+app.use('/api/dashboard', dashboardRouter);
+
+// Multer / generic error handler.
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  console.error('[error]', err.message);
+  res.status(err.status || 400).json({ error: err.message || 'Request failed' });
+});
+
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => {
+  console.log(`JalDrishti backend on http://localhost:${PORT}  (satellite mode: ${mode()})`);
+});
