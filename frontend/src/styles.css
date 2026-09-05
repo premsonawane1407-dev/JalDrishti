@@ -78,8 +78,22 @@ a:hover { text-decoration: underline; }
 .badge .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.85); }
 
 /* ---------- Map ---------- */
-.map-wrap { height: 560px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); }
-@media (max-width: 900px) { .map-wrap { height: 420px; } }
+.map-wrap { position: relative; height: 560px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); }
+@media (max-width: 900px) { .map-wrap { height: 460px; } }
+.map-legend { position: absolute; left: 12px; bottom: 12px; z-index: 500; }
+.stat .n .unit { font-size: 14px; font-weight: 600; color: var(--ink-soft); }
+
+.assess-panel {
+  position: absolute; top: 12px; left: 12px; z-index: 600; width: 232px;
+  background: rgba(255,255,255,.97); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: var(--shadow); padding: 12px 14px;
+}
+.assess-close { position: absolute; top: 6px; right: 8px; border: none; background: none; font-size: 18px; line-height: 1; cursor: pointer; color: var(--ink-soft); }
+.assess-title { font-weight: 700; font-size: 14px; }
+.assess-coord { font-size: 11px; color: var(--ink-soft); margin: 2px 0 8px; font-variant-numeric: tabular-nums; }
+.assess-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; padding: 4px 0; border-top: 1px dashed var(--line); }
+.assess-row span { color: var(--ink-soft); }
+.assess-row b { text-align: right; }
 .leaflet-container { height: 100%; width: 100%; font: inherit; }
 .pin {
   width: 22px; height: 22px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);

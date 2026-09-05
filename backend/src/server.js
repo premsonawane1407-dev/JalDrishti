@@ -10,6 +10,7 @@ import { sitesRouter } from './routes/sites.js';
 import { satelliteRouter } from './routes/satellite.js';
 import { photosRouter } from './routes/photos.js';
 import { dashboardRouter } from './routes/dashboard.js';
+import { geoRouter } from './routes/geo.js';
 
 initSchema();
 
@@ -28,6 +29,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/sites', sitesRouter);
 app.use('/api', satelliteRouter);
 app.use('/api', photosRouter);
+app.use('/api', geoRouter);
 app.use('/api/dashboard', dashboardRouter);
 
 // In production (single-service deploy) serve the built React app.

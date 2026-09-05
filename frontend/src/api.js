@@ -49,6 +49,9 @@ export const api = {
     req(`/api/sites/${id}/photos`, { method: 'POST', body: formData }),
   deletePhoto: (photoId) => req(`/api/photos/${photoId}`, { method: 'DELETE' }),
 
+  // GIS layers (watershed boundaries, streams, water bodies, structures)
+  geo: () => req('/api/geo'),
+
   // Dashboard
   dashboard: (params = {}) => {
     const qs = new URLSearchParams(
