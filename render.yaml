@@ -1,0 +1,20 @@
+# Render Blueprint — deploys JalDrishti as ONE web service:
+# Express serves the built React app + the API from a single URL.
+# Import this repo at https://dashboard.render.com → New → Blueprint.
+services:
+  - type: web
+    name: jaldrishti
+    runtime: node
+    plan: free
+    # Build the React frontend, then install backend deps.
+    buildCommand: cd frontend && npm install && npm run build && cd ../backend && npm install
+    # Seed the demo data (idempotent — skips if already seeded), then start.
+    startCommand: cd backend && npm run start:prod
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Satellite stays in mock mode unless you add real credentials here:
+      # - key: SH_CLIENT_ID
+      #   sync: false
+      # - key: SH_CLIENT_SECRET
+      #   sync: false

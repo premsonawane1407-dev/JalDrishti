@@ -1,8 +1,10 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { initSchema } from './db.js';
-import { IMAGES_DIR, UPLOADS_DIR } from './paths.js';
+import { IMAGES_DIR, UPLOADS_DIR, ROOT_DIR } from './paths.js';
 import { mode } from './services/sentinelHub.js';
 import { sitesRouter } from './routes/sites.js';
 import { satelliteRouter } from './routes/satellite.js';
@@ -27,6 +29,21 @@ app.use('/api/sites', sitesRouter);
 app.use('/api', satelliteRouter);
 app.use('/api', photosRouter);
 app.use('/api/dashboard', dashboardRouter);
+
+// In production (single-service deploy) serve the built React app.
+// The frontend uses relative /api, /images, /uploads — all same-origin here.
+const distDir = join(ROOT_DIR, '..', 'frontend', 'dist');
+if (existsSync(distDir)) {
+  app.use(express.static(distDir));
+  // SPA fallback: send index.html for any non-API, non-asset GET route.
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/images') || req.path.startsWith('/uploads')) {
+      return next();
+    }
+    res.sendFile(join(distDir, 'index.html'));
+  });
+  console.log('Serving built frontend from frontend/dist');
+}
 
 // Multer / generic error handler.
 app.use((err, req, res, next) => {
