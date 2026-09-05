@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db.js';
 import { getSiteWithTrend, listSitesWithTrend } from '../services/enrich.js';
+import { streamSiteReport } from '../services/report.js';
 
 export const sitesRouter = Router();
 
@@ -28,6 +29,18 @@ sitesRouter.get('/:id', (req, res) => {
   const site = getSiteWithTrend(Number(req.params.id));
   if (!site) return res.status(404).json({ error: 'Site not found' });
   res.json(site);
+});
+
+// Per-site PDF report (trend verdict, NDVI chart, heatmap, table, photos).
+sitesRouter.get('/:id/report', (req, res) => {
+  const site = getSiteWithTrend(Number(req.params.id));
+  if (!site) return res.status(404).json({ error: 'Site not found' });
+  try {
+    streamSiteReport(res, site);
+  } catch (err) {
+    console.error('[report]', err);
+    if (!res.headersSent) res.status(500).json({ error: 'Failed to build report' });
+  }
 });
 
 sitesRouter.post('/', (req, res) => {

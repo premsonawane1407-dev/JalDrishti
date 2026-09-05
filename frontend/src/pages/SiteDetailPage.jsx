@@ -55,7 +55,12 @@ export default function SiteDetailPage() {
             {site.intervention_date ? ` · intervention ${site.intervention_date}` : ''}
           </p>
         </div>
-        <TrendBadge label={t.label} pct={t.ndviChangePct} />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
+          <TrendBadge label={t.label} pct={t.ndviChangePct} />
+          <a className="btn primary sm" href={`/api/sites/${site.id}/report`} target="_blank" rel="noopener noreferrer">
+            ⬇ Download PDF report
+          </a>
+        </div>
       </div>
 
       {site.description && <div className="card pad" style={{ marginBottom: 20 }}><span className="muted">{site.description}</span></div>}
