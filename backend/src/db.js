@@ -54,6 +54,13 @@ export function initSchema() {
       UNIQUE(site_id, observation_date)
     );
 
+    CREATE TABLE IF NOT EXISTS site_geo (
+      site_id     INTEGER PRIMARY KEY REFERENCES sites(id) ON DELETE CASCADE,
+      geojson     TEXT    NOT NULL,
+      source      TEXT    DEFAULT 'upload',
+      updated_at  TEXT    DEFAULT (datetime('now'))
+    );
+
     CREATE INDEX IF NOT EXISTS idx_photos_site       ON photos(site_id);
     CREATE INDEX IF NOT EXISTS idx_obs_site          ON observations(site_id);
     CREATE INDEX IF NOT EXISTS idx_obs_site_date     ON observations(site_id, observation_date);

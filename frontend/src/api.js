@@ -54,6 +54,9 @@ export const api = {
 
   // GIS layers (watershed boundaries, streams, water bodies, structures)
   geo: () => req('/api/geo'),
+  siteGeoStatus: (id) => req(`/api/sites/${id}/geo`),
+  uploadSiteGeo: (id, formData) => req(`/api/sites/${id}/geo`, { method: 'POST', body: formData }),
+  deleteSiteGeo: (id) => req(`/api/sites/${id}/geo`, { method: 'DELETE' }),
 
   // Dashboard
   dashboard: (params = {}) => {

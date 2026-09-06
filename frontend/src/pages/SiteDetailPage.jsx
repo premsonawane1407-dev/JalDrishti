@@ -122,6 +122,12 @@ export default function SiteDetailPage() {
         </div>
       </div>
 
+      {/* Real watershed boundary / GIS layers */}
+      <div className="card pad" style={{ marginTop: 20 }}>
+        <h3 className="section-title">🗺 Watershed boundary &amp; GIS layers</h3>
+        <BoundaryPanel site={site} notify={notify} />
+      </div>
+
       {/* Analyze uploaded satellite imagery (GeoTIFF) */}
       <div className="card pad" style={{ marginTop: 20 }}>
         <h3 className="section-title">🧮 Analyze your own satellite image (GeoTIFF)</h3>
@@ -143,6 +149,81 @@ function Tile({ label, value, sub, className = 'brand' }) {
       <div className="n">{value}</div>
       <div className="l">{label}{sub ? <><br /><span className="muted" style={{ fontSize: 11 }}>{sub}</span></> : null}</div>
     </div>
+  );
+}
+
+function BoundaryPanel({ site, notify }) {
+  const fileRef = useRef(null);
+  const [status, setStatus] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const refresh = () => api.siteGeoStatus(site.id).then(setStatus).catch(() => setStatus(null));
+  useEffect(() => { refresh(); }, [site.id]); // eslint-disable-line
+
+  const upload = async (e) => {
+    e.preventDefault();
+    const file = fileRef.current?.files?.[0];
+    if (!file) { notify('Choose a .geojson file first', 'err'); return; }
+    const fd = new FormData();
+    fd.append('geojson', file);
+    setBusy(true);
+    try {
+      const r = await api.uploadSiteGeo(site.id, fd);
+      notify(`Boundary set (${r.boundaryAreaKm2 ?? '?'} km²)`);
+      if (fileRef.current) fileRef.current.value = '';
+      await refresh();
+    } catch (err) {
+      notify(err.message, 'err');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async () => {
+    if (!window.confirm('Remove the uploaded boundary and revert to sample geometry?')) return;
+    try { await api.deleteSiteGeo(site.id); notify('Reverted to sample geometry'); await refresh(); }
+    catch (err) { notify(err.message, 'err'); }
+  };
+
+  const isReal = status?.hasReal;
+  return (
+    <>
+      <p className="muted" style={{ fontSize: 13, marginTop: 0 }}>
+        Upload a real watershed boundary (and optionally streams/water bodies) as <b>GeoJSON</b> exported from
+        QGIS or SRISHTI-DRISHTI, in EPSG:4326 (lon-lat). It replaces the sample geometry for this site on the{' '}
+        <Link to="/">map</Link>. Anything you don't supply is filled in as sample layers.
+      </p>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+        <span className="pill" style={{ background: isReal ? '#e3f5e9' : '#fdf3d6', color: isReal ? '#1a7d3f' : '#8a6d00' }}>
+          {isReal ? '● Real boundary (uploaded)' : '○ Sample boundary'}
+        </span>
+        {status && (
+          <span className="muted" style={{ fontSize: 13 }}>
+            {status.boundaryAreaKm2 != null ? `${status.boundaryAreaKm2} km² · ` : ''}
+            {status.counts?.streams} streams · {status.counts?.waterbodies} water bodies
+          </span>
+        )}
+      </div>
+
+      <form onSubmit={upload} className="card pad" style={{ background: '#fafcfd' }}>
+        <div className="form-grid" style={{ gridTemplateColumns: '1.6fr auto' }}>
+          <div className="field">
+            <label>Boundary / layers GeoJSON (.geojson / .json)</label>
+            <input ref={fileRef} type="file" accept=".geojson,.json,application/geo+json,application/json" />
+          </div>
+          <div className="field" style={{ justifyContent: 'flex-end' }}>
+            <button className="btn primary" disabled={busy}>{busy ? <span className="spinner" /> : '🗺'} Upload boundary</button>
+          </div>
+        </div>
+      </form>
+
+      {isReal && (
+        <div style={{ marginTop: 12 }}>
+          <button className="btn danger sm" onClick={remove}>Remove &amp; revert to sample</button>
+        </div>
+      )}
+    </>
   );
 }
 
