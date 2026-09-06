@@ -5,7 +5,8 @@
 > one and not another), every file and how the files connect, how each part
 > answers the official problem statement, and what is still left to build.
 >
-> _Last updated: 2026-09-06 • Status: Features 1–7 complete, deployed live._
+> _Last updated: 2026-09-06 • Status: Features 1–7 complete + GIS map, Phase 2
+> (upload-imagery NDVI) and Phase 3 (real boundaries) done; deployed live._
 
 ---
 
@@ -50,7 +51,7 @@ them across time, and gives you a clear verdict with visuals and a report.
 | PS asks for | JalDrishti today |
 |---|---|
 | **(a)** Integrated framework: geo-photos + satellite | ✅ Sites + photos + satellite indices unified on one map/dashboard |
-| **(b)** Better geo-coded **image interpretation** | 🟡 Photos are GPS-placed & shown beside indices; deeper photo analysis is a future phase |
+| **(b)** Better geo-coded **image interpretation** | ✅ Photos GPS-placed beside indices; **users upload their own GeoTIFF and the platform computes NDVI/NDWI from it** (Phase 2) |
 | **(c)** Thematic maps (vegetation, water, drainage, boundaries) | ✅ NDVI/NDWI + GIS layers: watershed boundary, streams, water bodies, structures |
 | **(d)** Enhanced monitoring & change detection | ✅ Time-series + Improving/Stable/Declining trend engine |
 | **(e)** Scientific support for decisions | ✅ Dashboard rollups + per-site PDF evidence reports |
@@ -77,6 +78,12 @@ them across time, and gives you a clear verdict with visuals and a report.
    intervention type, filters.
 7. **PDF report** — one-click professional report per site (trend, chart,
    heatmap, table, photos).
+8. **Upload your own satellite image (Phase 2)** — drop in a GeoTIFF and the
+   platform computes NDVI/NDWI from its bands on the server and adds it to the
+   time-series — the "GIS work" automated, no QGIS by hand.
+9. **Upload a real watershed boundary (Phase 3)** — bring a GeoJSON (from QGIS or
+   SRISHTI-DRISHTI) and it replaces the sample boundary/layers for that site on
+   the map, with real area computed; sample geometry fills any gaps.
 
 ---
 
@@ -180,19 +187,21 @@ both, so there is one web address and no cross-site complications.
 | File | Purpose | Connects to |
 |---|---|---|
 | `src/server.js` | The entry point. Creates the Express app, enables CORS/JSON, serves `/images` and `/uploads` files, mounts every route group, and (in production) serves the built React app with SPA fallback. Starts listening on the port. | Imports every `routes/*` file, `db.js` (schema init), `paths.js`, and `services/sentinelHub.js` (to report mock/live mode). |
-| `src/db.js` | Opens the SQLite database and creates the three tables (`sites`, `photos`, `observations`) if missing. Exposes the `db` handle. | Used by every route and by `enrich.js`, `geodata.js`, `seed.js`. |
+| `src/db.js` | Opens the SQLite database and creates the tables (`sites`, `photos`, `observations`, `site_geo`) if missing. Exposes the `db` handle. | Used by every route and by `enrich.js`, `geodata.js`, `seed.js`. |
 | `src/paths.js` | Central definition of folder locations: `DATA_DIR`, `IMAGES_DIR` (generated heatmaps), `UPLOADS_DIR` (user photos), `ROOT_DIR`. Creates them on startup. | Imported by `server.js`, `sentinelHub.js`, `photos.js`, `report.js`, `seed.js`. |
 | `src/seed.js` | Fills the database with **5 real Indian watershed demo sites**, 8 quarterly satellite observations each (curated to show all trend types), and placeholder field photos. Run with `npm run seed` / `npm run reset`. | Uses `db.js`, `paths.js`, `services/sentinelHub.js` (heatmap writer), `services/heatmap.js`. |
 | `src/routes/sites.js` | CRUD for sites (create/read/update/delete) with validation, the intervention-type list, **and the PDF report endpoint** (`GET /:id/report`). | Uses `db.js`, `services/enrich.js`, `services/report.js`. |
 | `src/routes/satellite.js` | Fetch/cache a satellite **observation** for a site+date (`/sites/:id/observations/fetch`), list observations, delete one, and report `/mode` (mock vs live). | Uses `db.js`, `services/sentinelHub.js`, `services/trend.js`. |
 | `src/routes/photos.js` | Upload a field photo (reads EXIF GPS/date), list a site's photos, delete a photo. | Uses `db.js`, `paths.js`, multer, exifr. |
 | `src/routes/dashboard.js` | Aggregates for the dashboard: counts by trend, breakdowns by district and intervention type, totals, filter options. | Uses `db.js`, `services/enrich.js`. |
-| `src/routes/geo.js` | Serves the **GIS layers** (`/geo`) — watershed boundaries, streams, water bodies, structures — as GeoJSON, plus summary totals. | Uses `services/geodata.js`. |
+| `src/routes/geo.js` | Serves the **GIS layers** (`/geo`) as GeoJSON, and (Phase 3) **uploads/gets/deletes a real GeoJSON boundary** per site (`/sites/:id/geo`) with WGS84 validation. | Uses `db.js`, `services/geodata.js`, multer. |
+| `src/routes/analyze.js` | (Phase 2) `POST /sites/:id/analyze` — accepts a **GeoTIFF** upload and turns it into an NDVI observation. | Uses `db.js`, `paths.js`, `services/raster.js`, multer. |
 | `src/services/sentinelHub.js` | The **satellite brain**. Dual-mode: mock (deterministic NDVI/NDWI + SVG heatmap) or live (Sentinel Hub OAuth + Statistical/Process API). Same output either way. | Uses `paths.js`, `services/heatmap.js`. Called by `satellite.js`, `seed.js`. |
 | `src/services/trend.js` | Pure logic: given a site's observations, sorts by date, compares latest vs baseline NDVI, returns **Improving/Stable/Declining** + % change + colour. | Used by `enrich.js`, `satellite.js`. |
 | `src/services/heatmap.js` | Generates the NDVI **heatmap image** as an SVG (colour ramp brown→green), plus a seeded random-number generator for deterministic visuals. | Used by `sentinelHub.js`, `geodata.js`, `seed.js`. |
 | `src/services/enrich.js` | Helper that assembles a full site object: its observations, photos, and computed trend. Two functions: one site with detail, all sites for the map/dashboard. | Uses `db.js`, `services/trend.js`. Used by `sites.js`, `dashboard.js`. |
-| `src/services/geodata.js` | Generates deterministic **sample GeoJSON** (catchment boundary, streams, water bodies, structures) around each site using Turf, and summary stats. Clearly labelled demo geometry — swappable for real QGIS/SRISHTI-DRISHTI data. | Uses `db.js`, `services/heatmap.js` (seeded RNG), @turf/turf. Used by `geo.js`. |
+| `src/services/geodata.js` | Builds the GIS layers per site — **data-driven**: uses a site's **real uploaded GeoJSON** (from `site_geo`) when present, else deterministic **sample** geometry (Turf); fills gaps in real data with sample layers anchored to the real boundary. | Uses `db.js`, `services/heatmap.js`, @turf/turf. Used by `geo.js`. |
+| `src/services/raster.js` | (Phase 2) Reads an uploaded **GeoTIFF** with geotiff.js and computes NDVI/NDWI from its Red/NIR/Green bands + a heatmap grid — the GIS raster maths, automated. | Uses `services/heatmap.js`, geotiff.js. Used by `analyze.js`. |
 | `src/services/report.js` | Builds the per-site **PDF** with pdfkit: header, trend verdict box, hand-drawn NDVI/NDWI chart, embedded heatmap, observation table, photos, footer. | Uses `paths.js`, pdfkit, svg-to-pdfkit. Called by `sites.js`. |
 | `package.json` | Lists backend dependencies and scripts (`start`, `start:prod`, `seed`, `reset`). | — |
 | `.env.example` | Template for configuration (port, Sentinel Hub keys). Copy to `.env` to go live. | Read by `dotenv` in `server.js`/`seed.js`. |
@@ -220,7 +229,7 @@ both, so there is one web address and no cross-site complications.
 | `src/pages/MapPage.jsx` | Home page: trend stat tiles, **GIS stat tiles** (area, water bodies, drainage, structures), the map, and a site table. | Uses `api.js`, `MapView.jsx`, `TrendBadge.jsx`. |
 | `src/pages/DashboardPage.jsx` | Program dashboard: filters, stat tiles, stacked bar charts by district/type, and a site table. | Uses `api.js`, Recharts, `TrendBadge.jsx`. |
 | `src/pages/SitesPage.jsx` | Manage sites: table with add/edit/delete via a modal form. | Uses `api.js`, `SiteForm.jsx`, `TrendBadge.jsx`. |
-| `src/pages/SiteDetailPage.jsx` | The rich single-site view: trend tiles, NDVI/NDWI chart, satellite heatmap + thumbnail timeline, "Fetch NDVI" controls, photo timeline + upload, and the **Download PDF report** button. | Uses `api.js`, `NdviChart.jsx`, `TrendBadge.jsx`, `Toast.jsx`. |
+| `src/pages/SiteDetailPage.jsx` | The rich single-site view: trend tiles, NDVI/NDWI chart, satellite heatmap + timeline, "Fetch NDVI" controls, **Download PDF report**, **watershed-boundary upload panel** (Phase 3), **GeoTIFF analysis panel** (Phase 2), and the photo timeline + upload. | Uses `api.js`, `NdviChart.jsx`, `TrendBadge.jsx`, `Toast.jsx`. |
 | `package.json` | Frontend dependencies + scripts (`dev`, `build`, `preview`). | — |
 
 ### Project root
@@ -237,15 +246,17 @@ both, so there is one web address and no cross-site complications.
 
 ## 6. The data model (what we store)
 
-Three tables in SQLite:
+Four tables in SQLite:
 
 - **`sites`** — one row per watershed project: name, district, state, latitude,
   longitude, intervention type, intervention date, description.
 - **`photos`** — field photos linked to a site: filename, caption, GPS
   latitude/longitude (from EXIF or the map), date taken.
 - **`observations`** — one satellite reading per site per date: NDVI, NDWI, cloud
-  %, the heatmap image filename, and the source (mock/sentinel-hub). A uniqueness
-  rule prevents duplicate readings for the same date (this is the **cache**).
+  %, the heatmap image filename, and the source (mock / sentinel-hub / uploaded).
+  A uniqueness rule prevents duplicate readings for the same date (the **cache**).
+- **`site_geo`** — a site's uploaded **real GeoJSON** (Phase 3): the raw layers,
+  source, and update time. Used to override the sample map geometry.
 
 Everything else (the trend label, the GIS layers) is **computed on demand** from
 these tables, so it's always consistent.
@@ -275,6 +286,10 @@ these tables, so it's always consistent.
   API keys and no internet; flip a switch (add keys) for real data.
 - **Turf.js** — a library that does map-maths in the browser: "is this point
   inside that watershed?", "how far to the nearest pond?".
+- **GeoTIFF** — an image file (a satellite scene) that also carries its map
+  location and separate colour "bands" (Red, Near-Infrared, …). Phase 2 reads
+  these bands to compute NDVI. **geotiff.js** is the library that reads them in
+  JavaScript, so no QGIS/Python is needed.
 
 ---
 
@@ -307,20 +322,16 @@ these tables, so it's always consistent.
 - ✅ Feature 5 — Interactive **GIS** map (basemaps, thematic layers, spatial analysis)
 - ✅ Feature 6 — Summary dashboard with filters
 - ✅ Feature 7 — Per-site PDF report
+- ✅ **Phase 2** — Upload-your-own-imagery: compute NDVI/NDWI from a GeoTIFF's
+  bands on the server (`geotiff.js`), fully automated. *(PS a, b, c)*
+- ✅ **Phase 3** — Real watershed boundaries: upload GeoJSON (QGIS /
+  SRISHTI-DRISHTI) per site; sample geometry as fallback. *(PS a, c)*
 - ✅ Deployed as one service on Render
 
 ### Next phases (planned)
-1. **Phase 2 — Upload-your-own-imagery analysis** (`geotiff.js`): a user uploads
-   satellite images (e.g., 3 years) and the platform itself computes NDVI/change
-   and returns a report — fully automated, no manual GIS tool. *Strongest answer
-   to the PS "single framework" demand.* *(PS a, b, c)*
-2. **Phase 3 — Real watershed boundaries & thematic layers**: replace the sample
-   GeoJSON with real boundaries/drainage authored in **QGIS** or from
-   SRISHTI-DRISHTI; add land-use maps. *(PS a, c)*
-3. **Phase 4 — SRISHTI-DRISHTI / Bhuvan data source**: wire the government
-   satellite platform behind the existing satellite layer, add Bhuvan basemaps.
-   *(PS g)*
-4. **Nice-to-haves**: district/program-level PDF, single-admin login, a
+1. **Phase 4 — SRISHTI-DRISHTI / Bhuvan data source**: wire the government
+   satellite platform in as a configurable map/data source. *(PS g)*
+2. **Nice-to-haves**: district/program-level PDF, single-admin login, a
    persistent disk so uploaded photos survive redeploys, and code-splitting to
    shrink the JavaScript bundle.
 

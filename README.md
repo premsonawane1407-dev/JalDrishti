@@ -22,15 +22,26 @@ Declining**, and visualises everything on an interactive map + dashboard.
 | 4 | Time-series change detection + trend labels with % change | ✅ |
 | 5 | Interactive Leaflet map, trend-coloured pins, per-site detail with NDVI chart & heatmap | ✅ |
 | 6 | District/program summary dashboard with filters | ✅ |
-| 7 | PDF/report export | _stretch — not built_ |
+| 7 | PDF/report export (per site) | ✅ |
+
+### Beyond the brief (GIS phases)
+
+| Phase | Feature | Status |
+|---|---------|--------|
+| Map | Full **GIS map**: satellite/terrain/street/dark basemaps, thematic layers (watershed boundary, streams, water bodies, structures), Turf.js click-to-assess | ✅ |
+| 2 | **Upload-your-own-imagery**: analyse a GeoTIFF's bands to compute NDVI/NDWI on the server (geotiff.js) | ✅ |
+| 3 | **Real watershed boundaries**: upload GeoJSON (QGIS / SRISHTI-DRISHTI) per site; sample geometry as fallback | ✅ |
+| 4 | SRISHTI-DRISHTI / Bhuvan data source | _planned_ |
 
 ## Tech stack
 
-- **Frontend:** React + Vite, `react-leaflet` (maps), Recharts (charts)
+- **Frontend:** React + Vite, `react-leaflet` (maps), `@turf/turf` (spatial analysis), Recharts (charts)
 - **Backend:** Node.js + Express
 - **Database:** SQLite via Node's built-in `node:sqlite` (zero external DB to install)
 - **Satellite:** Sentinel Hub Process + Statistical API — with a **deterministic mock
   layer** so the whole app runs offline and demos never wait on the network.
+- **Raster/vector:** `geotiff.js` (NDVI from uploaded GeoTIFFs), `@turf/turf` (areas,
+  lengths, point-in-polygon), `pdfkit` + `svg-to-pdfkit` (PDF reports).
 
 ## Project layout
 
@@ -39,10 +50,11 @@ JalDrishti/
 ├─ backend/          Express API + SQLite + Sentinel Hub service
 │  ├─ src/
 │  │  ├─ server.js           app entry
-│  │  ├─ db.js               schema (sites, photos, observations)
+│  │  ├─ db.js               schema (sites, photos, observations, site_geo)
 │  │  ├─ seed.js             5 demo sites + curated NDVI time-series
-│  │  ├─ routes/             sites, satellite, photos, dashboard
-│  │  └─ services/           sentinelHub (mock+live), trend, heatmap, enrich
+│  │  ├─ routes/             sites, satellite, photos, dashboard, geo, analyze
+│  │  └─ services/           sentinelHub (mock+live), trend, heatmap, enrich,
+│  │                         geodata (GIS layers), raster (GeoTIFF NDVI), report (PDF)
 │  └─ .env.example
 └─ frontend/         React + Vite SPA
    └─ src/{pages,components}
@@ -109,7 +121,11 @@ Re-seed anytime with `npm run reset` (wipes and reloads).
 | GET | `/api/sites/:id` | site + observations + photos + trend |
 | POST/PUT/DELETE | `/api/sites[/:id]` | site CRUD |
 | POST | `/api/sites/:id/observations/fetch` | fetch/cache a satellite observation for a date |
+| GET | `/api/sites/:id/report` | per-site PDF report |
+| POST | `/api/sites/:id/analyze` | upload a GeoTIFF → compute NDVI/NDWI from its bands |
+| GET/POST/DELETE | `/api/sites/:id/geo` | per-site GIS status / upload boundary GeoJSON / revert |
 | GET/POST/DELETE | `/api/sites/:id/photos`, `/api/photos/:id` | field photo upload/list/delete (EXIF GPS) |
+| GET | `/api/geo` | all GIS layers (boundaries, streams, water bodies, structures) |
 | GET | `/api/dashboard?district=&intervention_type=&from=&to=` | aggregates |
 
 ### How the trend is computed
