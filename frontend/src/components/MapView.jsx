@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  MapContainer, TileLayer, Marker, Popup, GeoJSON, LayersControl,
-  CircleMarker, useMap, useMapEvents,
+  MapContainer, TileLayer, WMSTileLayer, Marker, Popup, GeoJSON, LayersControl,
+  LayerGroup, CircleMarker, useMap, useMapEvents,
 } from 'react-leaflet';
 import L from 'leaflet';
 import { Link } from 'react-router-dom';
@@ -88,8 +88,25 @@ const boundaryStyle = { color: '#0d5c75', weight: 2, dashArray: '6 5', fillColor
 const streamStyle = (f) => ({ color: '#2c7fb8', weight: f.properties.order >= 3 ? 3 : 1.6, opacity: 0.85 });
 const waterStyle = { color: '#1f6feb', weight: 1, fillColor: '#3b9ae1', fillOpacity: 0.55 };
 
-export default function MapView({ sites, geo }) {
+function ExternalTile({ layer }) {
+  if (layer.type === 'wms') {
+    return (
+      <WMSTileLayer
+        url={layer.url}
+        layers={layer.layers}
+        format="image/png"
+        transparent={layer.kind === 'overlay'}
+        attribution={layer.attribution}
+      />
+    );
+  }
+  return <TileLayer url={layer.url} attribution={layer.attribution} maxZoom={layer.maxZoom || 19} />;
+}
+
+export default function MapView({ sites, geo, externalLayers = [] }) {
   const [assessment, setAssessment] = useState(null);
+  const extBase = externalLayers.filter((l) => l.kind === 'base');
+  const extOverlay = externalLayers.filter((l) => l.kind === 'overlay');
   const points = sites.map((s) => [s.latitude, s.longitude]);
   const center = points[0] || [22.5, 78.9];
 
@@ -126,6 +143,11 @@ export default function MapView({ sites, geo }) {
               url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
             />
           </BaseLayer>
+          {extBase.map((l) => (
+            <BaseLayer key={l.id} name={l.name}>
+              <ExternalTile layer={l} />
+            </BaseLayer>
+          ))}
 
           {geo && (
             <>
@@ -162,6 +184,12 @@ export default function MapView({ sites, geo }) {
           <Overlay checked name="Watershed sites">
             <SitesLayer sites={sites} />
           </Overlay>
+
+          {extOverlay.map((l) => (
+            <Overlay key={l.id} name={l.name}>
+              <ExternalTile layer={l} />
+            </Overlay>
+          ))}
         </LayersControl>
 
         <ClickAssess layers={geo} onResult={setAssessment} />
@@ -202,7 +230,7 @@ export default function MapView({ sites, geo }) {
 
 function SitesLayer({ sites }) {
   return (
-    <>
+    <LayerGroup>
       {sites.map((s) => (
         <Marker key={s.id} position={[s.latitude, s.longitude]} icon={pinIcon(TREND_COLORS[s.trend.color])}>
           <Popup>
@@ -217,7 +245,7 @@ function SitesLayer({ sites }) {
           </Popup>
         </Marker>
       ))}
-    </>
+    </LayerGroup>
   );
 }
 

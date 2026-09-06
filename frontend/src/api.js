@@ -15,6 +15,7 @@ async function req(path, options = {}) {
 export const api = {
   health: () => req('/api/health'),
   mode: () => req('/api/mode'),
+  config: () => req('/api/config'),
 
   // Sites
   listSites: () => req('/api/sites'),
