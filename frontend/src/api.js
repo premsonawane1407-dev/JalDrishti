@@ -43,6 +43,9 @@ export const api = {
     }),
   deleteObservation: (obsId) => req(`/api/observations/${obsId}`, { method: 'DELETE' }),
 
+  // Analyze an uploaded GeoTIFF (compute NDVI/NDWI from its bands)
+  analyzeImagery: (id, formData) => req(`/api/sites/${id}/analyze`, { method: 'POST', body: formData }),
+
   // Photos
   listPhotos: (id) => req(`/api/sites/${id}/photos`),
   uploadPhoto: (id, formData) =>

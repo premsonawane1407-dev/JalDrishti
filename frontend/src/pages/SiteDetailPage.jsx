@@ -122,6 +122,12 @@ export default function SiteDetailPage() {
         </div>
       </div>
 
+      {/* Analyze uploaded satellite imagery (GeoTIFF) */}
+      <div className="card pad" style={{ marginTop: 20 }}>
+        <h3 className="section-title">🧮 Analyze your own satellite image (GeoTIFF)</h3>
+        <ImageryAnalysis site={site} onChange={load} notify={notify} />
+      </div>
+
       {/* Photo timeline */}
       <div className="card pad" style={{ marginTop: 20 }}>
         <h3 className="section-title">📷 Field photo timeline</h3>
@@ -137,6 +143,79 @@ function Tile({ label, value, sub, className = 'brand' }) {
       <div className="n">{value}</div>
       <div className="l">{label}{sub ? <><br /><span className="muted" style={{ fontSize: 11 }}>{sub}</span></> : null}</div>
     </div>
+  );
+}
+
+function ImageryAnalysis({ site, onChange, notify }) {
+  const fileRef = useRef(null);
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [redBand, setRedBand] = useState('1');
+  const [nirBand, setNirBand] = useState('2');
+  const [greenBand, setGreenBand] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const analyze = async (e) => {
+    e.preventDefault();
+    const file = fileRef.current?.files?.[0];
+    if (!file) { notify('Choose a GeoTIFF (.tif) first', 'err'); return; }
+    const fd = new FormData();
+    fd.append('image', file);
+    fd.append('date', date);
+    fd.append('redBand', redBand);
+    fd.append('nirBand', nirBand);
+    if (greenBand) fd.append('greenBand', greenBand);
+    setBusy(true);
+    try {
+      const r = await api.analyzeImagery(site.id, fd);
+      setResult(r.analysis);
+      notify(`Analyzed: NDVI ${r.observation.ndvi}`);
+      if (fileRef.current) fileRef.current.value = '';
+      await onChange();
+    } catch (err) {
+      notify(err.message, 'err');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <p className="muted" style={{ fontSize: 13, marginTop: 0 }}>
+        Upload a Sentinel-2 / Landsat GeoTIFF and the platform computes NDVI (and NDWI) directly from its
+        bands — no GIS software needed. The result is added to this site's time-series, chart and report.
+      </p>
+      <form onSubmit={analyze} className="card pad" style={{ background: '#fafcfd' }}>
+        <div className="form-grid" style={{ gridTemplateColumns: '1.4fr 1fr' }}>
+          <div className="field">
+            <label>GeoTIFF file (.tif / .tiff)</label>
+            <input ref={fileRef} type="file" accept=".tif,.tiff,image/tiff" />
+          </div>
+          <div className="field">
+            <label>Observation date</label>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          </div>
+        </div>
+        <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr', marginTop: 12 }}>
+          <div className="field"><label>Red band #</label><input value={redBand} onChange={(e) => setRedBand(e.target.value)} inputMode="numeric" /></div>
+          <div className="field"><label>NIR band #</label><input value={nirBand} onChange={(e) => setNirBand(e.target.value)} inputMode="numeric" /></div>
+          <div className="field"><label>Green band # (optional)</label><input value={greenBand} onChange={(e) => setGreenBand(e.target.value)} placeholder="for NDWI" inputMode="numeric" /></div>
+        </div>
+        <p className="muted" style={{ fontSize: 12, margin: '10px 0 0' }}>
+          Band numbers are 1-based. Red+NIR file → Red 1, NIR 2. A 4-band RGBN → Red 3, NIR 4. A single-band
+          file is treated as ready-made NDVI.
+        </p>
+        <div style={{ marginTop: 12 }}>
+          <button className="btn primary" disabled={busy}>{busy ? <span className="spinner" /> : '🧮'} Analyze image</button>
+        </div>
+      </form>
+      {result && (
+        <div className="muted" style={{ fontSize: 13, marginTop: 10 }}>
+          Last analysis: {result.width}×{result.height}px, {result.bands} band(s) → NDVI <b>{result.ndvi}</b>
+          {result.ndwi != null ? <> · NDWI <b>{result.ndwi}</b></> : ''}. See the updated chart &amp; heatmap above.
+        </div>
+      )}
+    </>
   );
 }
 

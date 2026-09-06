@@ -53,6 +53,34 @@ export function seededRng(seedStr) {
 }
 
 /**
+ * Build an NDVI heatmap SVG from a REAL computed grid of NDVI values
+ * (used by the uploaded-imagery raster analysis). `grid` is a 2D array of
+ * numbers (or null/NaN for no-data pixels).
+ * @returns {string} SVG markup
+ */
+export function generateHeatmapSvgFromGrid(grid, { size = 320 } = {}) {
+  const rows = grid.length;
+  const cols = grid[0]?.length || 0;
+  if (!rows || !cols) return generateHeatmapSvg({ seed: 'empty', meanNdvi: 0.3 });
+  const cw = size / cols;
+  const ch = size / rows;
+  const cells = [];
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const v = grid[y][x];
+      const fill = v == null || Number.isNaN(v) ? '#222' : ndviColor(Math.max(-0.3, Math.min(0.9, v)));
+      cells.push(
+        `<rect x="${(x * cw).toFixed(2)}" y="${(y * ch).toFixed(2)}" width="${cw.toFixed(2)}" height="${ch.toFixed(2)}" fill="${fill}"/>`
+      );
+    }
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+<rect width="${size}" height="${size}" fill="#000"/>
+${cells.join('\n')}
+</svg>`;
+}
+
+/**
  * Build an NDVI heatmap SVG for a site.
  * meanNdvi drives the overall greenness; noise adds spatial texture.
  * @returns {string} SVG markup
