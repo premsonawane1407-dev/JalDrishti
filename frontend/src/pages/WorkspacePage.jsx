@@ -6,6 +6,7 @@ import * as turf from '@turf/turf';
 import { PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, Tooltip } from 'recharts';
 import { api } from '../api.js';
 import TrendBadge from '../components/TrendBadge.jsx';
+import BeforeAfter from '../components/BeforeAfter.jsx';
 
 const boundaryStyle = { color: '#0e7b84', weight: 2.4, dashArray: '2 7', lineCap: 'round', fillColor: '#0e7b84', fillOpacity: 0.05 };
 const streamStyle = (f) => ({ color: '#2c8fb8', weight: f.properties.order >= 3 ? 3 : 1.5, opacity: 0.9 });
@@ -164,11 +165,12 @@ export default function WorkspacePage() {
         </div>
         <div className="card pad">
           <h3 className="section-title">Change detection · {baseline?.observation_date?.slice(0, 4)} → {latest?.observation_date?.slice(0, 4)}</h3>
-          <div className="ws-beforeafter">
-            <figure><img className="heatmap" src={`/images/${baseline?.image_filename}`} alt="before" /><figcaption>Before</figcaption></figure>
-            <span className="ws-arrow">→</span>
-            <figure><img className="heatmap" src={`/images/${latest?.image_filename}`} alt="after" /><figcaption>After</figcaption></figure>
-          </div>
+          <BeforeAfter
+            before={`/images/${baseline?.image_filename}`}
+            after={`/images/${latest?.image_filename}`}
+            beforeLabel={baseline?.observation_date}
+            afterLabel={latest?.observation_date}
+          />
           <div className="ws-change" style={{ color: t.ndviChangePct >= 0 ? 'var(--improving)' : 'var(--declining)' }}>
             {t.ndviChangePct >= 0 ? '▲' : '▼'} {Math.abs(t.ndviChangePct)}% vegetation
           </div>

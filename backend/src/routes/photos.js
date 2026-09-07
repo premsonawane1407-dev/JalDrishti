@@ -88,6 +88,18 @@ photosRouter.get('/sites/:id/photos', (req, res) => {
   res.json(rows);
 });
 
+// All field photos across sites (for the Field Images gallery).
+photosRouter.get('/photos', (req, res) => {
+  const rows = db
+    .prepare(
+      `SELECT p.*, s.name AS site_name, s.district, s.intervention_type
+       FROM photos p JOIN sites s ON s.id = p.site_id
+       ORDER BY COALESCE(p.taken_at, p.created_at) DESC`
+    )
+    .all();
+  res.json(rows);
+});
+
 photosRouter.delete('/photos/:photoId', (req, res) => {
   const photo = db.prepare('SELECT * FROM photos WHERE id = ?').get(Number(req.params.photoId));
   if (!photo) return res.status(404).json({ error: 'Photo not found' });

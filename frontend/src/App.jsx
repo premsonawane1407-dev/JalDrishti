@@ -1,52 +1,46 @@
 import { useEffect, useState } from 'react';
-import { Routes, Route, NavLink } from 'react-router-dom';
-import { api } from './api.js';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { ToastProvider } from './components/Toast.jsx';
+import Sidebar from './components/Sidebar.jsx';
 import MapPage from './pages/MapPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import SitesPage from './pages/SitesPage.jsx';
 import SiteDetailPage from './pages/SiteDetailPage.jsx';
 import WorkspacePage from './pages/WorkspacePage.jsx';
+import GalleryPage from './pages/GalleryPage.jsx';
 
 export default function App() {
-  const [mode, setMode] = useState(null);
+  const [navOpen, setNavOpen] = useState(false);
+  const location = useLocation();
 
-  useEffect(() => {
-    api.mode().then((m) => setMode(m)).catch(() => setMode({ mode: 'mock', live: false }));
-  }, []);
+  // Close the mobile drawer whenever the route changes.
+  useEffect(() => { setNavOpen(false); }, [location.pathname]);
 
   return (
     <ToastProvider>
-      <div className="app">
-        <header className="topbar">
-          <div className="brand">
-            <span className="drop">💧</span>
-            <span>
-              <b>JalDrishti</b>
-              <small>Watershed Intelligence</small>
-            </span>
-          </div>
-          <nav className="nav">
-            <NavLink to="/" end>Map</NavLink>
-            <NavLink to="/dashboard">Dashboard</NavLink>
-            <NavLink to="/sites">Sites</NavLink>
-          </nav>
-          <span className="spacer" />
-          {mode && (
-            <span className={`mode-badge ${mode.live ? 'live' : ''}`} title="Satellite data source">
-              {mode.live ? '🛰 Sentinel Hub (live)' : '🛰 Mock data'}
-            </span>
-          )}
-        </header>
-        <main className="content">
-          <Routes>
-            <Route path="/" element={<MapPage />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/sites" element={<SitesPage />} />
-            <Route path="/sites/:id/explore" element={<WorkspacePage />} />
-            <Route path="/sites/:id" element={<SiteDetailPage />} />
-          </Routes>
-        </main>
+      <div className="shell">
+        <Sidebar open={navOpen} onNavigate={() => setNavOpen(false)} />
+        {navOpen && <div className="sb-scrim" onClick={() => setNavOpen(false)} />}
+
+        <div className="shell-main">
+          <header className="mobile-bar">
+            <button className="hamburger" onClick={() => setNavOpen((o) => !o)} aria-label="Menu">
+              <span /><span /><span />
+            </button>
+            <div className="mb-brand"><span className="drop">💧</span><b>JalDrishti</b></div>
+          </header>
+
+          <main className="content">
+            <Routes>
+              <Route path="/" element={<MapPage />} />
+              <Route path="/gallery" element={<GalleryPage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/sites" element={<SitesPage />} />
+              <Route path="/sites/:id/explore" element={<WorkspacePage />} />
+              <Route path="/sites/:id" element={<SiteDetailPage />} />
+            </Routes>
+          </main>
+        </div>
       </div>
     </ToastProvider>
   );

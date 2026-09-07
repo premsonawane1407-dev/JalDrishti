@@ -49,6 +49,7 @@ export const api = {
   analyzeImagery: (id, formData) => req(`/api/sites/${id}/analyze`, { method: 'POST', body: formData }),
 
   // Photos
+  allPhotos: () => req('/api/photos'),
   listPhotos: (id) => req(`/api/sites/${id}/photos`),
   uploadPhoto: (id, formData) =>
     req(`/api/sites/${id}/photos`, { method: 'POST', body: formData }),
