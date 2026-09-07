@@ -1,5 +1,6 @@
 import { db } from '../db.js';
 import { computeTrend } from './trend.js';
+import { landUseFor } from './landuse.js';
 
 const siteStmt = db.prepare('SELECT * FROM sites WHERE id = ?');
 const allSitesStmt = db.prepare('SELECT * FROM sites ORDER BY name');
@@ -26,12 +27,15 @@ export function listSitesWithTrend() {
     const observations = obsStmt.all(site.id);
     const trend = computeTrend(observations);
     const latest = observations[observations.length - 1] ?? null;
+    const lu = landUseFor(site, observations).distribution;
+    const dominantLandUse = [...lu].sort((a, b) => b.pct - a.pct)[0] ?? null;
     return {
       ...site,
       observationCount: observations.length,
       latestNdvi: latest ? latest.ndvi : null,
       latestNdwi: latest ? latest.ndwi : null,
       latestObservationDate: latest ? latest.observation_date : null,
+      dominantLandUse,
       trend,
     };
   });
