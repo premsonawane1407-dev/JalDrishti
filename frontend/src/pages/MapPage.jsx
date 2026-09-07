@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { api, TREND_COLORS } from '../api.js';
 import MapView from '../components/MapView.jsx';
 import TrendBadge from '../components/TrendBadge.jsx';
@@ -14,6 +14,15 @@ export default function MapPage() {
   const [region, setRegion] = useState('');
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const LENS_IDS = ['trend', 'vegetation', 'water', 'drainage', 'landuse'];
+  const lens = LENS_IDS.includes(searchParams.get('lens')) ? searchParams.get('lens') : 'trend';
+  const setLens = (id) => setSearchParams((prev) => {
+    const p = new URLSearchParams(prev);
+    if (id === 'trend') p.delete('lens'); else p.set('lens', id);
+    return p;
+  }, { replace: true });
 
   useEffect(() => {
     api.listSites().then((s) => { setSites(s); setLoading(false); }).catch(() => setLoading(false));
@@ -68,7 +77,7 @@ export default function MapPage() {
       ) : (
         <>
           <div className="map-stage reveal">
-            <MapView sites={shown} geo={fgeo} externalLayers={externalLayers} />
+            <MapView sites={shown} geo={fgeo} externalLayers={externalLayers} lens={lens} onLens={setLens} />
           </div>
 
           <div className="atlas-lower">

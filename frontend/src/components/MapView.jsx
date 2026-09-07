@@ -86,9 +86,8 @@ function ExternalTile({ layer }) {
   return <TileLayer url={layer.url} attribution={layer.attribution} maxZoom={layer.maxZoom || 19} />;
 }
 
-export default function MapView({ sites, geo, externalLayers = [] }) {
+export default function MapView({ sites, geo, externalLayers = [], lens = 'trend', onLens }) {
   const [assessment, setAssessment] = useState(null);
-  const [lens, setLens] = useState('trend');
   const [summaryOpen, setSummaryOpen] = useState(true);
   const [isFs, setIsFs] = useState(false);
   const [fsPseudo, setFsPseudo] = useState(false);
@@ -169,7 +168,7 @@ export default function MapView({ sites, geo, externalLayers = [] }) {
       {/* Lens control */}
       <div className="map-panel lens-bar">
         {LENSES.map((l) => (
-          <button key={l.id} className={`lens-btn ${lens === l.id ? 'on' : ''}`} onClick={() => setLens(l.id)}>{l.label}</button>
+          <button key={l.id} className={`lens-btn ${lens === l.id ? 'on' : ''}`} onClick={() => onLens?.(l.id)}>{l.label}</button>
         ))}
       </div>
 
