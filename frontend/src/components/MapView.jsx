@@ -46,6 +46,7 @@ function pinColorFor(site, lens) {
 function pinIcon(color, assess = false) {
   return L.divIcon({ className: '', html: `<div class="pin${assess ? ' pin-assess' : ''}" style="background:${color}"></div>`, iconSize: [22, 22], iconAnchor: [11, 11], popupAnchor: [0, -12] });
 }
+const cameraIcon = L.divIcon({ className: '', html: '<div class="photo-pin">📷</div>', iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -12] });
 
 function SizeFix() {
   const map = useMap();
@@ -94,7 +95,7 @@ function ExternalTile({ layer }) {
   return <TileLayer url={layer.url} attribution={layer.attribution} maxZoom={layer.maxZoom || 19} />;
 }
 
-export default function MapView({ sites, geo, externalLayers = [], lens = 'trend', onLens }) {
+export default function MapView({ sites, geo, externalLayers = [], photos = [], lens = 'trend', onLens }) {
   const [assessment, setAssessment] = useState(null);
   const [summaryOpen, setSummaryOpen] = useState(true);
   const [isFs, setIsFs] = useState(false);
@@ -160,6 +161,9 @@ export default function MapView({ sites, geo, externalLayers = [], lens = 'trend
           )}
 
           <Overlay checked name="Watershed sites"><SitesLayer sites={sites} lens={lens} /></Overlay>
+          {photos.length > 0 && (
+            <Overlay checked name={`Field photos (${photos.length})`}><PhotoLayer photos={photos} /></Overlay>
+          )}
           {extOverlay.map((l) => <Overlay key={l.id} name={l.name}><ExternalTile layer={l} /></Overlay>)}
         </LayersControl>
 
@@ -260,6 +264,25 @@ function SitesLayer({ sites, lens }) {
               <div className="meta">{s.district}, {s.state} · {s.intervention_type}</div>
               <TrendBadge label={s.trend.label} pct={s.trend.ndviChangePct} />
               <div style={{ marginTop: 8 }}><Link to={`/sites/${s.id}/explore`}>Open workspace →</Link></div>
+            </div>
+          </Popup>
+        </Marker>
+      ))}
+    </LayerGroup>
+  );
+}
+
+function PhotoLayer({ photos }) {
+  return (
+    <LayerGroup>
+      {photos.map((p) => (
+        <Marker key={p.id} position={[p.latitude, p.longitude]} icon={cameraIcon}>
+          <Popup>
+            <div className="map-popup photo-popup">
+              <img src={`/uploads/${p.filename}`} alt={p.caption || 'field photo'} />
+              <h4>{p.site_name}</h4>
+              <div className="meta">{p.taken_at || ''}{p.caption ? ` · ${p.caption}` : ''}</div>
+              <div style={{ marginTop: 6 }}><Link to={`/sites/${p.site_id}/explore`}>Open workspace →</Link></div>
             </div>
           </Popup>
         </Marker>

@@ -10,6 +10,7 @@ export default function MapPage() {
   const [sites, setSites] = useState([]);
   const [geo, setGeo] = useState(null);
   const [externalLayers, setExternalLayers] = useState([]);
+  const [photos, setPhotos] = useState([]);
   const [activity, setActivity] = useState([]);
   const [region, setRegion] = useState('');
   const [query, setQuery] = useState('');
@@ -28,6 +29,7 @@ export default function MapPage() {
     api.listSites().then((s) => { setSites(s); setLoading(false); }).catch(() => setLoading(false));
     api.geo().then(setGeo).catch(() => setGeo(null));
     api.config().then((c) => setExternalLayers(c.externalLayers || [])).catch(() => setExternalLayers([]));
+    api.allPhotos().then(setPhotos).catch(() => setPhotos([]));
     api.activity(12).then(setActivity).catch(() => setActivity([]));
   }, []);
 
@@ -40,6 +42,7 @@ export default function MapPage() {
   });
   const shownIds = useMemo(() => new Set(shown.map((s) => s.id)), [shown]);
   const fgeo = useMemo(() => filterGeo(geo, shownIds), [geo, shownIds]);
+  const shownPhotos = useMemo(() => photos.filter((p) => shownIds.has(p.site_id) && Number.isFinite(p.latitude)), [photos, shownIds]);
 
   return (
     <div>
@@ -77,7 +80,7 @@ export default function MapPage() {
       ) : (
         <>
           <div className="map-stage reveal">
-            <MapView sites={shown} geo={fgeo} externalLayers={externalLayers} lens={lens} onLens={setLens} />
+            <MapView sites={shown} geo={fgeo} externalLayers={externalLayers} photos={shownPhotos} lens={lens} onLens={setLens} />
           </div>
 
           <div className="atlas-lower">

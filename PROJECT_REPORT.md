@@ -5,8 +5,10 @@
 > one and not another), every file and how the files connect, how each part
 > answers the official problem statement, and what is still left to build.
 >
-> _Last updated: 2026-09-06 • Status: Features 1–7 complete + GIS map, Phase 2
-> (upload-imagery NDVI) and Phase 3 (real boundaries) done; deployed live._
+> _Last updated: 2026-09-07 • Status: Features 1–7 complete; full GIS Atlas with
+> Analyze lenses; single-screen Watershed Workspace; premium redesign + sidebar
+> app-shell; uploads for imagery (NDVI), boundaries (GeoJSON) and land cover
+> (WorldCover/Dynamic World); external gov/EO data sources. Deployed live._
 
 ---
 
@@ -56,7 +58,7 @@ them across time, and gives you a clear verdict with visuals and a report.
 | **(d)** Enhanced monitoring & change detection | ✅ Time-series + Improving/Stable/Declining trend engine |
 | **(e)** Scientific support for decisions | ✅ Dashboard rollups + per-site PDF evidence reports |
 | **(f)** Scalable, cost-effective | ✅ Lightweight web app, free tiers, cached data |
-| **(g)** Use the SRISHTI-DRISHTI satellite platform | 🔜 Built with a swappable satellite layer; SRISHTI-DRISHTI is a planned drop-in |
+| **(g)** Use the SRISHTI-DRISHTI satellite platform | 🟡 Configurable external-layer framework (NASA GIBS live, Bhuvan/SRISHTI-DRISHTI via `.env`); needs the gov endpoint/access to go fully live |
 
 ---
 
@@ -78,12 +80,22 @@ them across time, and gives you a clear verdict with visuals and a report.
    intervention type, filters.
 7. **PDF report** — one-click professional report per site (trend, chart,
    heatmap, table, photos).
-8. **Upload your own satellite image (Phase 2)** — drop in a GeoTIFF and the
-   platform computes NDVI/NDWI from its bands on the server and adds it to the
-   time-series — the "GIS work" automated, no QGIS by hand.
-9. **Upload a real watershed boundary (Phase 3)** — bring a GeoJSON (from QGIS or
-   SRISHTI-DRISHTI) and it replaces the sample boundary/layers for that site on
-   the map, with real area computed; sample geometry fills any gaps.
+8. **Upload your own satellite image** — drop in a GeoTIFF and the platform
+   computes NDVI/NDWI from its bands on the server and adds it to the time-series
+   — the "GIS work" automated, no QGIS by hand.
+9. **Upload a real watershed boundary** — bring a GeoJSON (from QGIS or
+   SRISHTI-DRISHTI); it replaces the sample boundary/layers for that site with
+   real area computed; sample geometry fills any gaps.
+10. **Upload real land cover** — an ESA WorldCover / Dynamic World raster is
+    classified into a real land-use breakdown (curated sample otherwise).
+11. **Watershed Workspace** — one screen per site that IS the demo flow: an
+    immersive satellite map framed to the catchment, a **timeline slider** that
+    plays the NDVI layer through time, click a **field-photo ↔ satellite**
+    comparison, a **before/after swipe** for change detection, a land-use donut
+    and a health ring, and a one-click report.
+12. **Atlas "Analyze" lenses** — recolour every watershed by Trend, Vegetation,
+    Water, Drainage or Land use; driven from the sidebar or the in-map control,
+    with search, region filter, field-photo markers and fullscreen.
 
 ---
 
@@ -195,13 +207,16 @@ both, so there is one web address and no cross-site complications.
 | `src/routes/photos.js` | Upload a field photo (reads EXIF GPS/date), list a site's photos, delete a photo. | Uses `db.js`, `paths.js`, multer, exifr. |
 | `src/routes/dashboard.js` | Aggregates for the dashboard: counts by trend, breakdowns by district and intervention type, totals, filter options. | Uses `db.js`, `services/enrich.js`. |
 | `src/routes/geo.js` | Serves the **GIS layers** (`/geo`) as GeoJSON, and (Phase 3) **uploads/gets/deletes a real GeoJSON boundary** per site (`/sites/:id/geo`) with WGS84 validation. | Uses `db.js`, `services/geodata.js`, multer. |
-| `src/routes/analyze.js` | (Phase 2) `POST /sites/:id/analyze` — accepts a **GeoTIFF** upload and turns it into an NDVI observation. | Uses `db.js`, `paths.js`, `services/raster.js`, multer. |
+| `src/routes/analyze.js` | Upload endpoints: `POST /sites/:id/analyze` (GeoTIFF → NDVI observation) and `POST/DELETE /sites/:id/landcover` (WorldCover/Dynamic World raster → classified land use). | Uses `db.js`, `paths.js`, `services/raster.js`, multer. |
+| `src/routes/config.js` | `GET /config` — runtime config + **external map layers** (NASA GIBS, Bhuvan, SRISHTI-DRISHTI) from env. | Uses `services/sentinelHub.js`. |
+| `src/routes/activity.js` | `GET /activity` — merged recent-activity feed (photo uploads, latest readings, interventions). | Uses `db.js`. |
 | `src/services/sentinelHub.js` | The **satellite brain**. Dual-mode: mock (deterministic NDVI/NDWI + SVG heatmap) or live (Sentinel Hub OAuth + Statistical/Process API). Same output either way. | Uses `paths.js`, `services/heatmap.js`. Called by `satellite.js`, `seed.js`. |
 | `src/services/trend.js` | Pure logic: given a site's observations, sorts by date, compares latest vs baseline NDVI, returns **Improving/Stable/Declining** + % change + colour. | Used by `enrich.js`, `satellite.js`. |
 | `src/services/heatmap.js` | Generates the NDVI **heatmap image** as an SVG (colour ramp brown→green), plus a seeded random-number generator for deterministic visuals. | Used by `sentinelHub.js`, `geodata.js`, `seed.js`. |
 | `src/services/enrich.js` | Helper that assembles a full site object: its observations, photos, and computed trend. Two functions: one site with detail, all sites for the map/dashboard. | Uses `db.js`, `services/trend.js`. Used by `sites.js`, `dashboard.js`. |
 | `src/services/geodata.js` | Builds the GIS layers per site — **data-driven**: uses a site's **real uploaded GeoJSON** (from `site_geo`) when present, else deterministic **sample** geometry (Turf); fills gaps in real data with sample layers anchored to the real boundary. | Uses `db.js`, `services/heatmap.js`, @turf/turf. Used by `geo.js`. |
-| `src/services/raster.js` | (Phase 2) Reads an uploaded **GeoTIFF** with geotiff.js and computes NDVI/NDWI from its Red/NIR/Green bands + a heatmap grid — the GIS raster maths, automated. | Uses `services/heatmap.js`, geotiff.js. Used by `analyze.js`. |
+| `src/services/raster.js` | Reads uploaded **GeoTIFFs** with geotiff.js: computes NDVI/NDWI + heatmap grid from bands, and **classifies land-cover** rasters into land-use categories. | Uses `services/heatmap.js`, `services/landuse.js`, geotiff.js. Used by `analyze.js`. |
+| `src/services/landuse.js` | Land-use per site — returns the **real** classified distribution if uploaded (`site_landcover`), else a curated, NDVI-correlated **sample**. | Uses `db.js`, `services/heatmap.js`. Used by `sites.js`, `enrich.js`, `raster.js`. |
 | `src/services/report.js` | Builds the per-site **PDF** with pdfkit: header, trend verdict box, hand-drawn NDVI/NDWI chart, embedded heatmap, observation table, photos, footer. | Uses `paths.js`, pdfkit, svg-to-pdfkit. Called by `sites.js`. |
 | `package.json` | Lists backend dependencies and scripts (`start`, `start:prod`, `seed`, `reset`). | — |
 | `.env.example` | Template for configuration (port, Sentinel Hub keys). Copy to `.env` to go live. | Read by `dotenv` in `server.js`/`seed.js`. |
@@ -217,19 +232,23 @@ both, so there is one web address and no cross-site complications.
 | `index.html` | The single HTML page React mounts into; sets the title and favicon. | Loads `src/main.jsx`. |
 | `vite.config.js` | Dev config: proxies `/api`, `/images`, `/uploads` to the backend so the frontend can use same-origin URLs. | — |
 | `src/main.jsx` | Boots React, wraps the app in the router, imports Leaflet CSS + global styles. | Renders `App.jsx`. |
-| `src/App.jsx` | The shell: top navigation bar, the mock/live satellite badge, the toast (notification) provider, and the route table (which page shows for which URL). | Imports all `pages/*`, `components/Toast.jsx`, `api.js`. |
+| `src/App.jsx` | The **app shell**: the dark sidebar + mobile drawer, the toast provider, and the route table (which page shows for which URL). | Imports `Sidebar.jsx`, all `pages/*`, `components/Toast.jsx`. |
+| `src/components/Sidebar.jsx` | Dark grouped navigation (Atlas · Explore · **Analyze** · Insights); the Analyze items drive the atlas lens via `/?lens=…`; mobile drawer + user footer. | Uses `api.js` (mode), react-router. |
 | `src/api.js` | One tidy place for **every** backend call (sites, satellite, photos, dashboard, geo, report) plus shared trend colours. | Used by every page/component that needs data. |
 | `src/styles.css` | All the visual styling (layout, cards, map, tables, forms, buttons, badges, the assessment panel). | Global. |
-| `src/components/MapView.jsx` | The **GIS map**: basemap switcher, thematic GeoJSON layers with toggles, trend-coloured site pins, and Turf-powered click-to-assess side panel. | Uses react-leaflet, @turf/turf, `TrendBadge.jsx`, `api.js` colours. |
-| `src/components/NdviChart.jsx` | The NDVI + NDWI line chart over time. | Recharts. Used by `SiteDetailPage`. |
+| `src/components/MapView.jsx` | The **GIS Atlas map**: basemap switcher, thematic layers, field-photo markers, **Analyze lens** control, right-click/double-tap assessment, fullscreen, and the floating glass summary. | Uses react-leaflet, @turf/turf, `TrendBadge.jsx`, `api.js`. |
+| `src/components/NdviChart.jsx` | The NDVI + NDWI area/line chart over time. | Recharts. Used by `SiteDetailPage`. |
+| `src/components/BeforeAfter.jsx` | Draggable before/after image swipe (change detection). | Used by `WorkspacePage`. |
 | `src/components/LocationPicker.jsx` | Small click-to-set-coordinates map used inside the site form. | react-leaflet. Used by `SiteForm`. |
 | `src/components/SiteForm.jsx` | The create/edit site form with validation and the location picker. | Uses `api.js`, `LocationPicker.jsx`. Used by `SitesPage`. |
 | `src/components/TrendBadge.jsx` | The little coloured Improving/Stable/Declining pill. | Used across pages. |
 | `src/components/Toast.jsx` | Lightweight pop-up notifications ("Site created", errors). | Provided in `App.jsx`, used by pages. |
-| `src/pages/MapPage.jsx` | Home page: trend stat tiles, **GIS stat tiles** (area, water bodies, drainage, structures), the map, and a site table. | Uses `api.js`, `MapView.jsx`, `TrendBadge.jsx`. |
+| `src/pages/MapPage.jsx` | The **Atlas**: search + region filter, the hero GIS map, and a two-column lower section (site list + **recent-activity feed**). Owns the lens (URL) and passes filtered sites/geo/photos to the map. | Uses `api.js`, `MapView.jsx`, `TrendBadge.jsx`. |
 | `src/pages/DashboardPage.jsx` | Program dashboard: filters, stat tiles, stacked bar charts by district/type, and a site table. | Uses `api.js`, Recharts, `TrendBadge.jsx`. |
 | `src/pages/SitesPage.jsx` | Manage sites: table with add/edit/delete via a modal form. | Uses `api.js`, `SiteForm.jsx`, `TrendBadge.jsx`. |
-| `src/pages/SiteDetailPage.jsx` | The rich single-site view: trend tiles, NDVI/NDWI chart, satellite heatmap + timeline, "Fetch NDVI" controls, **Download PDF report**, **watershed-boundary upload panel** (Phase 3), **GeoTIFF analysis panel** (Phase 2), and the photo timeline + upload. | Uses `api.js`, `NdviChart.jsx`, `TrendBadge.jsx`, `Toast.jsx`. |
+| `src/pages/SiteDetailPage.jsx` | The data-detail view: trend tiles, NDVI/NDWI chart, satellite heatmap + timeline, "Fetch NDVI", **Download PDF report**, boundary-GeoJSON upload, GeoTIFF analysis, and the photo timeline + upload. | Uses `api.js`, `NdviChart.jsx`, `TrendBadge.jsx`, `Toast.jsx`. |
+| `src/pages/WorkspacePage.jsx` | The **Watershed Workspace** (`/sites/:id/explore`): immersive map framed to the catchment, timeline slider + play driving the NDVI overlay, photo↔satellite compare, **before/after swipe**, land-use donut (+ real land-cover upload), health ring, report. | Uses `api.js`, `BeforeAfter.jsx`, Recharts, react-leaflet, @turf/turf. |
+| `src/pages/GalleryPage.jsx` | **Field Images** gallery (`/gallery`): every geo-tagged photo across the programme, each linking to its watershed. | Uses `api.js`. |
 | `package.json` | Frontend dependencies + scripts (`dev`, `build`, `preview`). | — |
 
 ### Project root
@@ -246,7 +265,7 @@ both, so there is one web address and no cross-site complications.
 
 ## 6. The data model (what we store)
 
-Four tables in SQLite:
+Five tables in SQLite:
 
 - **`sites`** — one row per watershed project: name, district, state, latitude,
   longitude, intervention type, intervention date, description.
@@ -255,8 +274,10 @@ Four tables in SQLite:
 - **`observations`** — one satellite reading per site per date: NDVI, NDWI, cloud
   %, the heatmap image filename, and the source (mock / sentinel-hub / uploaded).
   A uniqueness rule prevents duplicate readings for the same date (the **cache**).
-- **`site_geo`** — a site's uploaded **real GeoJSON** (Phase 3): the raw layers,
-  source, and update time. Used to override the sample map geometry.
+- **`site_geo`** — a site's uploaded **real GeoJSON**: the raw layers, source and
+  update time. Overrides the sample map geometry.
+- **`site_landcover`** — a site's **real land-use distribution**, classified from
+  an uploaded ESA WorldCover / Dynamic World raster. Overrides the curated sample.
 
 Everything else (the trend label, the GIS layers) is **computed on demand** from
 these tables, so it's always consistent.
@@ -326,14 +347,19 @@ these tables, so it's always consistent.
   bands on the server (`geotiff.js`), fully automated. *(PS a, b, c)*
 - ✅ **Phase 3** — Real watershed boundaries: upload GeoJSON (QGIS /
   SRISHTI-DRISHTI) per site; sample geometry as fallback. *(PS a, c)*
+- ✅ **Phase 4** — Configurable external gov/EO data sources (NASA GIBS live;
+  Bhuvan / SRISHTI-DRISHTI via `.env`). *(PS g)*
+- ✅ **Real land cover** — classify uploaded WorldCover / Dynamic World rasters. *(PS c)*
+- ✅ **Watershed Workspace** — single-screen demo flow (timeline, photo↔satellite,
+  before/after, land use, report). *(PS a, b, c, d, e)*
+- ✅ **Premium redesign + app shell** — map-hero scientific UI, sidebar-driven
+  Analyze lenses, search, region filter, activity feed, Field Images gallery.
 - ✅ Deployed as one service on Render
 
-### Next phases (planned)
-1. **Phase 4 — SRISHTI-DRISHTI / Bhuvan data source**: wire the government
-   satellite platform in as a configurable map/data source. *(PS g)*
-2. **Nice-to-haves**: district/program-level PDF, single-admin login, a
-   persistent disk so uploaded photos survive redeploys, and code-splitting to
-   shrink the JavaScript bundle.
+### Next (optional polish)
+- District/program-level PDF, single-admin login, a persistent disk so uploaded
+  photos survive redeploys, code-splitting to shrink the JS bundle, and live
+  wiring of the SRISHTI-DRISHTI endpoint once access is granted.
 
 ---
 

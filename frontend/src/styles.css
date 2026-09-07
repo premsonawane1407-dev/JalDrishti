@@ -335,6 +335,7 @@ a:hover { color: var(--forest); }
 @media (max-width: 560px) { .atlas-search { min-width: 0; flex: 1; } }
 
 .map-popup h4 { margin: 0 0 4px; font-family: var(--font-display); font-weight: 600; font-size: 16px; }
+.photo-popup img { width: 200px; height: 116px; object-fit: cover; border-radius: 8px; display: block; margin-bottom: 7px; }
 .map-popup .meta { color: var(--ink-soft); font-size: 12px; margin-bottom: 8px; }
 
 /* Assessment — bottom sheet */

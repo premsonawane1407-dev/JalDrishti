@@ -24,24 +24,29 @@ Declining**, and visualises everything on an interactive map + dashboard.
 | 6 | District/program summary dashboard with filters | ✅ |
 | 7 | PDF/report export (per site) | ✅ |
 
-### Beyond the brief (GIS phases)
+### Beyond the brief
 
-| Phase | Feature | Status |
+| Area | Capability | Status |
 |---|---------|--------|
-| Map | Full **GIS map**: satellite/terrain/street/dark basemaps, thematic layers (watershed boundary, streams, water bodies, structures), Turf.js click-to-assess | ✅ |
-| 2 | **Upload-your-own-imagery**: analyse a GeoTIFF's bands to compute NDVI/NDWI on the server (geotiff.js) | ✅ |
-| 3 | **Real watershed boundaries**: upload GeoJSON (QGIS / SRISHTI-DRISHTI) per site; sample geometry as fallback | ✅ |
-| 4 | SRISHTI-DRISHTI / Bhuvan data source | _planned_ |
+| **GIS Atlas** | Satellite/terrain/street/dark basemaps, thematic layers (boundary, streams, water bodies, structures), Turf.js right-click/double-tap assessment, **Analyze lenses** (Trend/Vegetation/Water/Drainage/Land use recolouring), search + region filter, field-photo markers, fullscreen | ✅ |
+| **Watershed Workspace** | Single-screen per-site flow: satellite map framed to the catchment, **timeline slider + play** driving an NDVI overlay, field-photo ↔ satellite compare, **before/after swipe** change detection, land-use donut, health ring, PDF report | ✅ |
+| **Upload-your-own-imagery** | Analyse a GeoTIFF's bands → NDVI/NDWI on the server (geotiff.js) | ✅ |
+| **Real watershed boundaries** | Upload GeoJSON (QGIS / SRISHTI-DRISHTI) per site; sample geometry fallback | ✅ |
+| **Real land cover** | Upload ESA WorldCover / Dynamic World raster → classified land-use %; curated sample fallback | ✅ |
+| **External data sources** | Configurable government/EO map layers (NASA GIBS working; Bhuvan / SRISHTI-DRISHTI via `.env`) | ✅ |
+| **App shell** | Dark grouped sidebar (Atlas · Explore · Analyze · Insights), Field Images gallery, activity feed, mobile drawer | ✅ |
 
 ## Tech stack
 
-- **Frontend:** React + Vite, `react-leaflet` (maps), `@turf/turf` (spatial analysis), Recharts (charts)
-- **Backend:** Node.js + Express
-- **Database:** SQLite via Node's built-in `node:sqlite` (zero external DB to install)
+- **Frontend:** React + Vite, `react-leaflet` + Leaflet (maps), `@turf/turf` (spatial analysis),
+  Recharts (charts), `react-router-dom`; premium design system (Inter + Fraunces, glass, motion).
+- **Backend:** Node.js + Express.
+- **Database:** SQLite via Node's built-in `node:sqlite` (zero external DB to install).
 - **Satellite:** Sentinel Hub Process + Statistical API — with a **deterministic mock
   layer** so the whole app runs offline and demos never wait on the network.
-- **Raster/vector:** `geotiff.js` (NDVI from uploaded GeoTIFFs), `@turf/turf` (areas,
-  lengths, point-in-polygon), `pdfkit` + `svg-to-pdfkit` (PDF reports).
+- **Raster/vector:** `geotiff.js` (NDVI + land-cover classification from uploaded rasters),
+  `@turf/turf` (areas, lengths, point-in-polygon), `pdfkit` + `svg-to-pdfkit` (PDF reports),
+  `exifr` (photo GPS), `multer` (uploads).
 
 ## Project layout
 
@@ -50,14 +55,19 @@ JalDrishti/
 ├─ backend/          Express API + SQLite + Sentinel Hub service
 │  ├─ src/
 │  │  ├─ server.js           app entry
-│  │  ├─ db.js               schema (sites, photos, observations, site_geo)
+│  │  ├─ db.js               schema (sites, photos, observations, site_geo, site_landcover)
 │  │  ├─ seed.js             5 demo sites + curated NDVI time-series
-│  │  ├─ routes/             sites, satellite, photos, dashboard, geo, analyze
-│  │  └─ services/           sentinelHub (mock+live), trend, heatmap, enrich,
-│  │                         geodata (GIS layers), raster (GeoTIFF NDVI), report (PDF)
+│  │  ├─ routes/             sites, satellite, photos, dashboard, geo, analyze, config, activity
+│  │  └─ services/           sentinelHub (mock+live), trend, heatmap, enrich, geodata (GIS
+│  │                         layers), raster (GeoTIFF NDVI + land cover), landuse, report (PDF)
 │  └─ .env.example
 └─ frontend/         React + Vite SPA
-   └─ src/{pages,components}
+   └─ src/
+      ├─ App.jsx              shell (sidebar + routed content)
+      ├─ pages/               MapPage (Atlas), WorkspacePage, DashboardPage, SitesPage,
+      │                       SiteDetailPage, GalleryPage
+      └─ components/          Sidebar, MapView, NdviChart, BeforeAfter, SiteForm,
+                              LocationPicker, TrendBadge, Toast
 ```
 
 ## Getting started
@@ -122,10 +132,15 @@ Re-seed anytime with `npm run reset` (wipes and reloads).
 | POST/PUT/DELETE | `/api/sites[/:id]` | site CRUD |
 | POST | `/api/sites/:id/observations/fetch` | fetch/cache a satellite observation for a date |
 | GET | `/api/sites/:id/report` | per-site PDF report |
+| GET | `/api/sites/:id/landuse` | land-use distribution (real if uploaded, else curated sample) |
 | POST | `/api/sites/:id/analyze` | upload a GeoTIFF → compute NDVI/NDWI from its bands |
+| POST/DELETE | `/api/sites/:id/landcover` | upload ESA WorldCover / Dynamic World raster → classified land use / revert |
 | GET/POST/DELETE | `/api/sites/:id/geo` | per-site GIS status / upload boundary GeoJSON / revert |
 | GET/POST/DELETE | `/api/sites/:id/photos`, `/api/photos/:id` | field photo upload/list/delete (EXIF GPS) |
+| GET | `/api/photos` | all field photos (for the gallery + atlas markers) |
 | GET | `/api/geo` | all GIS layers (boundaries, streams, water bodies, structures) |
+| GET | `/api/config` | runtime config + external map layers (Bhuvan / SRISHTI-DRISHTI / NASA) |
+| GET | `/api/activity?limit=` | recent-activity feed (photos, readings, interventions) |
 | GET | `/api/dashboard?district=&intervention_type=&from=&to=` | aggregates |
 
 ### How the trend is computed
