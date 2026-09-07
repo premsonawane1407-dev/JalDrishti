@@ -173,13 +173,17 @@ function seed() {
     });
 
     // Two placeholder field photos: baseline (first quarter) and latest.
+    // Offset each within the catchment so map markers are distinct.
     const photoDates = [QUARTERS[0], QUARTERS[QUARTERS.length - 1]];
+    const offsets = [{ dlat: 0.011, dlng: -0.013 }, { dlat: -0.009, dlng: 0.015 }];
     s.photos.forEach((label, i) => {
       const date = photoDates[i] ?? QUARTERS[QUARTERS.length - 1];
       const ndvi = i === 0 ? s.ndvi[0] : s.ndvi[s.ndvi.length - 1];
       const filename = `seed-site${siteId}-${i + 1}.svg`;
+      const o = offsets[i] ?? { dlat: 0, dlng: 0 };
       writeFileSync(join(UPLOADS_DIR, filename), placeholderPhotoSvg({ siteName: s.name, label, date, ndvi }), 'utf8');
-      insertPhoto.run(siteId, filename, `${s.name} ${i === 0 ? 'baseline' : 'latest'}.svg`, label, s.latitude, s.longitude, date);
+      insertPhoto.run(siteId, filename, `${s.name} ${i === 0 ? 'baseline' : 'latest'}.svg`, label,
+        s.latitude + o.dlat, s.longitude + o.dlng, date);
     });
 
     console.log(`Seeded ${s.name} (id=${siteId}) with ${QUARTERS.length} observations + 2 photos.`);

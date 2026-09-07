@@ -41,7 +41,7 @@ export default function MapPage() {
           </div>
           <div className="site-list">
             {sites.map((s) => (
-              <Link className="site-row" to={`/sites/${s.id}`} key={s.id}>
+              <Link className="site-row" to={`/sites/${s.id}/explore`} key={s.id}>
                 <span className="tick" style={{ background: TREND_COLORS[s.trend.color] }} />
                 <div>
                   <div className="name">{s.name}</div>

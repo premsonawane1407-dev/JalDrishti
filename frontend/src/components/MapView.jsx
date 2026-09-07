@@ -197,7 +197,7 @@ function SitesLayer({ sites }) {
               <h4>{s.name}</h4>
               <div className="meta">{s.district}, {s.state} · {s.intervention_type}</div>
               <TrendBadge label={s.trend.label} pct={s.trend.ndviChangePct} />
-              <div style={{ marginTop: 8 }}><Link to={`/sites/${s.id}`}>View details →</Link></div>
+              <div style={{ marginTop: 8 }}><Link to={`/sites/${s.id}/explore`}>Open workspace →</Link></div>
             </div>
           </Popup>
         </Marker>

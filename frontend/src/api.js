@@ -20,6 +20,7 @@ export const api = {
   // Sites
   listSites: () => req('/api/sites'),
   getSite: (id) => req(`/api/sites/${id}`),
+  landuse: (id) => req(`/api/sites/${id}/landuse`),
   interventionTypes: () => req('/api/sites/meta/intervention-types'),
   createSite: (data) =>
     req('/api/sites', {

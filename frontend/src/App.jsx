@@ -6,6 +6,7 @@ import MapPage from './pages/MapPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import SitesPage from './pages/SitesPage.jsx';
 import SiteDetailPage from './pages/SiteDetailPage.jsx';
+import WorkspacePage from './pages/WorkspacePage.jsx';
 
 export default function App() {
   const [mode, setMode] = useState(null);
@@ -42,6 +43,7 @@ export default function App() {
             <Route path="/" element={<MapPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/sites" element={<SitesPage />} />
+            <Route path="/sites/:id/explore" element={<WorkspacePage />} />
             <Route path="/sites/:id" element={<SiteDetailPage />} />
           </Routes>
         </main>
