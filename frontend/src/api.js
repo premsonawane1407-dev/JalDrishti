@@ -16,6 +16,7 @@ export const api = {
   health: () => req('/api/health'),
   mode: () => req('/api/mode'),
   config: () => req('/api/config'),
+  activity: (limit = 12) => req(`/api/activity?limit=${limit}`),
 
   // Sites
   listSites: () => req('/api/sites'),

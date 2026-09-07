@@ -13,6 +13,7 @@ import { dashboardRouter } from './routes/dashboard.js';
 import { geoRouter } from './routes/geo.js';
 import { analyzeRouter } from './routes/analyze.js';
 import { configRouter } from './routes/config.js';
+import { activityRouter } from './routes/activity.js';
 
 initSchema();
 
@@ -34,6 +35,7 @@ app.use('/api', photosRouter);
 app.use('/api', geoRouter);
 app.use('/api', analyzeRouter);
 app.use('/api', configRouter);
+app.use('/api', activityRouter);
 app.use('/api/dashboard', dashboardRouter);
 
 // In production (single-service deploy) serve the built React app.

@@ -153,6 +153,9 @@ function siteLayers(site, real) {
     structures.push(...synthStructures(site, streams, radiusKm, rng));
   }
 
+  // Tag each stream with its length so region-filtered stats can sum without re-measuring.
+  streams.forEach((f) => { f.properties.length_km = round(turf.length(f, { units: 'kilometers' }), 2); });
+
   return { watersheds: [boundary], streams, waterbodies, structures };
 }
 
