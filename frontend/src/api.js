@@ -69,15 +69,15 @@ export const api = {
 };
 
 export const TREND_COLORS = {
-  green: '#1a9850',
-  yellow: '#e0b300',
-  red: '#d73027',
-  grey: '#9aa0a6',
+  green: '#2f8f5b',
+  yellow: '#c2963a',
+  red: '#bb5138',
+  grey: '#99a29a',
 };
 
 export const TREND_LABEL_COLORS = {
-  Improving: '#1a9850',
-  Stable: '#e0b300',
-  Declining: '#d73027',
-  'Insufficient data': '#9aa0a6',
+  Improving: '#2f8f5b',
+  Stable: '#c2963a',
+  Declining: '#bb5138',
+  'Insufficient data': '#99a29a',
 };

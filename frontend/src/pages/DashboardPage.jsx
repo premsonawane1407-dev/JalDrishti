@@ -113,15 +113,15 @@ function StackedBar({ rows }) {
   if (!rows || rows.length === 0) return <div className="empty">No data.</div>;
   return (
     <ResponsiveContainer width="100%" height={260}>
-      <BarChart data={rows} margin={{ top: 8, right: 8, left: -12, bottom: 4 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
-        <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#5b6b78' }} interval={0} angle={-12} textAnchor="end" height={50} />
-        <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#5b6b78' }} />
-        <Tooltip contentStyle={{ fontSize: 13, borderRadius: 8, border: '1px solid #e2e8ee' }} />
-        <Legend wrapperStyle={{ fontSize: 12 }} />
+      <BarChart data={rows} margin={{ top: 8, right: 8, left: -12, bottom: 4 }} barCategoryGap="28%">
+        <CartesianGrid strokeDasharray="2 5" stroke="#e7e1d4" vertical={false} />
+        <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94a097' }} interval={0} angle={-12} textAnchor="end" height={50} axisLine={{ stroke: '#e7e1d4' }} tickLine={false} />
+        <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#94a097' }} axisLine={false} tickLine={false} />
+        <Tooltip contentStyle={{ fontSize: 13, borderRadius: 12, border: '1px solid #e7e1d4', background: 'rgba(255,253,248,.95)', boxShadow: '0 12px 34px -12px rgba(24,40,30,.25)' }} cursor={{ fill: 'rgba(18,63,44,.05)' }} />
+        <Legend wrapperStyle={{ fontSize: 12, paddingTop: 6 }} iconType="circle" />
         <Bar dataKey="Improving" stackId="a" fill={COLORS.Improving} />
         <Bar dataKey="Stable" stackId="a" fill={COLORS.Stable} />
-        <Bar dataKey="Declining" stackId="a" fill={COLORS.Declining} />
+        <Bar dataKey="Declining" stackId="a" fill={COLORS.Declining} radius={[5, 5, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

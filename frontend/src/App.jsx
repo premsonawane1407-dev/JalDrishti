@@ -21,8 +21,8 @@ export default function App() {
           <div className="brand">
             <span className="drop">💧</span>
             <span>
-              JalDrishti
-              <small>Watershed Monitoring</small>
+              <b>JalDrishti</b>
+              <small>Watershed Intelligence</small>
             </span>
           </div>
           <nav className="nav">
