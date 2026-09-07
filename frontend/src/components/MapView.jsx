@@ -19,6 +19,14 @@ const LENSES = [
   { id: 'landuse', label: 'Land use' },
 ];
 
+const svg = (d) => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{d}</svg>
+);
+const FsIcon = ({ exit }) => svg(exit
+  ? <path d="M9 4H5a1 1 0 0 0-1 1v4M15 4h4a1 1 0 0 1 1 1v4M9 20H5a1 1 0 0 1-1-1v-4M15 20h4a1 1 0 0 0 1-1v-4" />
+  : <path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4" />);
+const HideIcon = () => svg(<path d="M5 12h14" />);
+
 // --- colour ramps ---
 const hex = (c) => { c = c.replace('#', ''); return [0, 2, 4].map((i) => parseInt(c.slice(i, i + 2), 16)); };
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
@@ -159,11 +167,13 @@ export default function MapView({ sites, geo, externalLayers = [], lens = 'trend
         {assessment && <Marker position={assessment.latlng} icon={pinIcon('#17241d', true)} />}
       </MapContainer>
 
-      {/* Map tools: fullscreen + summary visibility */}
-      <div className="map-panel map-tools">
-        <button onClick={toggleFs} title={fs ? 'Exit fullscreen' : 'Fullscreen'} aria-label="Toggle fullscreen">{fs ? '⤡' : '⛶'}</button>
-        <button onClick={() => setSummaryOpen((o) => !o)} className={summaryOpen ? 'on' : ''} title={summaryOpen ? 'Hide summary' : 'Show summary'} aria-label="Toggle summary">ⓘ</button>
-      </div>
+      {/* Restore pill (when the summary is hidden) */}
+      {!summaryOpen && (
+        <div className="map-panel map-restore">
+          <button className="mr-show" onClick={() => setSummaryOpen(true)}>Programme summary</button>
+          <button className="mr-icon" onClick={toggleFs} title={fs ? 'Exit fullscreen' : 'Fullscreen'} aria-label="Fullscreen"><FsIcon exit={fs} /></button>
+        </div>
+      )}
 
       {/* Lens control */}
       <div className="map-panel lens-bar">
@@ -175,6 +185,10 @@ export default function MapView({ sites, geo, externalLayers = [], lens = 'trend
       {/* Floating glass summary (adapts to the lens) */}
       {summaryOpen && (
       <div className="map-panel hero-summary">
+        <div className="panel-ctrls">
+          <button onClick={toggleFs} title={fs ? 'Exit fullscreen' : 'Fullscreen'} aria-label="Fullscreen"><FsIcon exit={fs} /></button>
+          <button onClick={() => setSummaryOpen(false)} title="Hide panel" aria-label="Hide panel"><HideIcon /></button>
+        </div>
         <div className="eyebrow">Watershed programme · {LENSES.find((l) => l.id === lens).label}</div>
         <div className="big">{sites.length}<small> sites</small></div>
 

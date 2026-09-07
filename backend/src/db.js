@@ -61,6 +61,13 @@ export function initSchema() {
       updated_at  TEXT    DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS site_landcover (
+      site_id      INTEGER PRIMARY KEY REFERENCES sites(id) ON DELETE CASCADE,
+      distribution TEXT    NOT NULL,
+      source       TEXT    DEFAULT 'worldcover',
+      updated_at   TEXT    DEFAULT (datetime('now'))
+    );
+
     CREATE INDEX IF NOT EXISTS idx_photos_site       ON photos(site_id);
     CREATE INDEX IF NOT EXISTS idx_obs_site          ON observations(site_id);
     CREATE INDEX IF NOT EXISTS idx_obs_site_date     ON observations(site_id, observation_date);

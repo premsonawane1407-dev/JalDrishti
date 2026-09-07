@@ -5,7 +5,7 @@ import { extname, join } from 'node:path';
 import { writeFileSync, unlinkSync } from 'node:fs';
 import { db } from '../db.js';
 import { IMAGES_DIR, UPLOADS_DIR } from '../paths.js';
-import { analyzeToObservation } from '../services/raster.js';
+import { analyzeToObservation, classifyLandcover } from '../services/raster.js';
 
 export const analyzeRouter = Router();
 
@@ -65,6 +65,37 @@ analyzeRouter.post('/sites/:id/analyze', upload.single('image'), async (req, res
     // The GeoTIFF can be large; we only keep the derived heatmap + numbers.
     safeUnlink(req.file.path);
   }
+});
+
+// Upload a land-cover GeoTIFF (ESA WorldCover / Dynamic World) → real land-use %.
+// Body: scheme = 'worldcover' | 'dynamicworld'.
+analyzeRouter.post('/sites/:id/landcover', upload.single('image'), async (req, res) => {
+  const siteId = Number(req.params.id);
+  if (!db.prepare('SELECT id FROM sites WHERE id = ?').get(siteId)) {
+    if (req.file) safeUnlink(req.file.path);
+    return res.status(404).json({ error: 'Site not found' });
+  }
+  if (!req.file) return res.status(400).json({ error: 'No image uploaded (field name: image)' });
+  const scheme = req.body?.scheme === 'dynamicworld' ? 'dynamicworld' : 'worldcover';
+  try {
+    const r = await classifyLandcover(req.file.path, scheme);
+    db.prepare(
+      `INSERT INTO site_landcover (site_id, distribution, source, updated_at)
+       VALUES (?, ?, ?, datetime('now'))
+       ON CONFLICT(site_id) DO UPDATE SET distribution=excluded.distribution, source=excluded.source, updated_at=datetime('now')`
+    ).run(siteId, JSON.stringify(r.distribution), r.source);
+    res.status(201).json({ ok: true, source: r.source, distribution: r.distribution });
+  } catch (err) {
+    console.error('[landcover]', err.message);
+    res.status(400).json({ error: `Could not classify land cover: ${err.message}` });
+  } finally {
+    safeUnlink(req.file.path);
+  }
+});
+
+analyzeRouter.delete('/sites/:id/landcover', (req, res) => {
+  db.prepare('DELETE FROM site_landcover WHERE site_id = ?').run(Number(req.params.id));
+  res.json({ ok: true });
 });
 
 function safeUnlink(p) { try { unlinkSync(p); } catch { /* gone */ } }

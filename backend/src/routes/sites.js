@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { db } from '../db.js';
 import { getSiteWithTrend, listSitesWithTrend } from '../services/enrich.js';
 import { streamSiteReport } from '../services/report.js';
-import { landUseFor } from '../services/landuse.js';
+import { resolveLandUse } from '../services/landuse.js';
 
 export const sitesRouter = Router();
 
@@ -36,7 +36,7 @@ sitesRouter.get('/:id', (req, res) => {
 sitesRouter.get('/:id/landuse', (req, res) => {
   const site = getSiteWithTrend(Number(req.params.id));
   if (!site) return res.status(404).json({ error: 'Site not found' });
-  res.json(landUseFor(site, site.observations));
+  res.json(resolveLandUse(site, site.observations));
 });
 
 // Per-site PDF report (trend verdict, NDVI chart, heatmap, table, photos).

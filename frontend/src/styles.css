@@ -285,15 +285,18 @@ a:hover { color: var(--forest); }
   background: var(--glass); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border); border-radius: 18px; box-shadow: var(--shadow-lg);
 }
-.map-tools { top: 16px; left: 16px; display: flex; gap: 3px; padding: 5px; }
-.map-tools button { width: 34px; height: 34px; border: none; background: transparent; border-radius: 10px; cursor: pointer; font-size: 16px; color: var(--forest); display: grid; place-items: center; transition: background .18s var(--ease); }
-.map-tools button:hover { background: rgba(18,63,44,.08); }
-.map-tools button.on { color: var(--teal); }
-.hero-summary { top: 60px; left: 16px; width: 232px; padding: 16px 17px; animation: fade-up .6s var(--ease-out) both; }
+.hero-summary { top: 16px; left: 16px; width: 236px; padding: 16px 17px; animation: fade-up .6s var(--ease-out) both; }
+.panel-ctrls { position: absolute; top: 10px; right: 10px; display: flex; gap: 2px; }
+.panel-ctrls button { border: none; background: transparent; cursor: pointer; color: var(--ink-faint); border-radius: 8px; padding: 5px; display: grid; place-items: center; transition: background .18s var(--ease), color .18s var(--ease); }
+.panel-ctrls button:hover { background: rgba(18,63,44,.08); color: var(--forest); }
+.map-restore { top: 16px; left: 16px; display: flex; align-items: center; gap: 4px; padding: 6px 8px 6px 15px; }
+.mr-show { font: inherit; font-size: 12.5px; font-weight: 600; color: var(--forest); background: transparent; border: none; cursor: pointer; }
+.mr-icon { border: none; background: transparent; cursor: pointer; color: var(--ink-faint); border-radius: 8px; padding: 5px; display: grid; place-items: center; transition: background .18s, color .18s; }
+.mr-icon:hover { background: rgba(18,63,44,.08); color: var(--forest); }
 .map-wrap:fullscreen { height: 100vh; border-radius: 0; border: none; }
 .map-wrap:fullscreen .leaflet-container { height: 100%; }
 .map-wrap.fs { position: fixed; inset: 0; height: 100vh !important; width: 100vw; z-index: 3000; border-radius: 0; border: none; }
-.hero-summary .eyebrow { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600; }
+.hero-summary .eyebrow { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600; padding-right: 52px; }
 .hero-summary .big { font-family: var(--font-display); font-weight: 600; font-size: 40px; line-height: .95; margin: 4px 0 2px; color: var(--ink); }
 .hero-summary .big small { font-family: var(--font-sans); font-size: 13px; font-weight: 500; color: var(--ink-soft); }
 .hero-legend { margin-top: 14px; padding-top: 13px; border-top: 1px solid var(--line); display: grid; gap: 8px; }
@@ -530,6 +533,15 @@ textarea { resize: vertical; min-height: 68px; }
 .ws-legend li { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ink-soft); }
 .ws-legend li span { width: 9px; height: 9px; border-radius: 3px; }
 .ws-legend li b { margin-left: auto; color: var(--ink); font-variant-numeric: tabular-nums; }
+.lc-source { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 10px; }
+.lc-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.lc-tag { font-size: 11.5px; font-weight: 600; color: var(--ink-faint); }
+.lc-tag.real { color: var(--improving); }
+.lc-link { font: inherit; font-size: 11.5px; font-weight: 600; color: var(--teal-2); background: transparent; border: none; cursor: pointer; padding: 0; }
+.lc-link:hover { color: var(--forest); text-decoration: underline; }
+.lc-form { margin-top: 9px; }
+.lc-form select { font-size: 13px; padding: 7px 10px; }
+
 .ws-beforeafter { display: flex; align-items: center; gap: 10px; }
 .ws-beforeafter figure { margin: 0; flex: 1; }
 .ws-beforeafter img { height: 116px; }
@@ -546,6 +558,42 @@ textarea { resize: vertical; min-height: 68px; }
 .ba-handle { position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(255,255,255,.92); transform: translateX(-1px); box-shadow: 0 0 0 1px rgba(0,0,0,.15); pointer-events: none; }
 .ba-knob { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 32px; height: 32px; border-radius: 50%; background: var(--surface); color: var(--forest); display: grid; place-items: center; font-size: 14px; box-shadow: var(--shadow); border: 1px solid var(--line); }
 .ws-actions { display: flex; gap: 12px; margin-top: 22px; flex-wrap: wrap; }
+
+/* ============================================================
+   Mobile polish
+   ============================================================ */
+@media (max-width: 700px) {
+  /* Atlas head: search + region go full width under the title */
+  .head-tools { width: 100%; }
+  .atlas-search { flex: 1; min-width: 0; }
+  .region-pick { flex: 0 0 auto; }
+
+  /* Compact floating summary so the map stays visible */
+  .hero-summary { width: 188px; padding: 13px 14px; }
+  .hero-summary .big { font-size: 30px; }
+  .hero-metrics { gap: 8px 10px; }
+  .hero-summary .eyebrow { padding-right: 46px; }
+
+  /* Lens control → a horizontal scroller pinned to the bottom */
+  .lens-bar { top: auto; bottom: 14px; left: 12px; right: 12px; transform: none; max-width: none;
+    flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; -webkit-overflow-scrolling: touch; }
+  .lens-bar::-webkit-scrollbar { display: none; }
+  .lens-btn { flex: 0 0 auto; }
+
+  /* The long assess hint is noise on a small screen (double-tap still works) */
+  .hero-hint { display: none; }
+
+  /* Two-column atlas lower section already stacks < 940px; tighten gaps */
+  .atlas-lower { gap: 18px; }
+  .site-row { gap: 12px; padding: 13px 14px; }
+}
+
+@media (max-width: 700px) {
+  /* Workspace: keep floating panels from colliding */
+  .ws-overview { width: calc(100% - 32px); }
+  .ws-photo { width: calc(100% - 32px); }
+  .ws-analytics { gap: 16px; }
+}
 
 /* ---------- Motion primitives ---------- */
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }

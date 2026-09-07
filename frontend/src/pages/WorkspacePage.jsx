@@ -7,6 +7,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, Tooltip } fr
 import { api } from '../api.js';
 import TrendBadge from '../components/TrendBadge.jsx';
 import BeforeAfter from '../components/BeforeAfter.jsx';
+import { useToast } from '../components/Toast.jsx';
 
 const boundaryStyle = { color: '#0e7b84', weight: 2.4, dashArray: '2 7', lineCap: 'round', fillColor: '#0e7b84', fillOpacity: 0.05 };
 const streamStyle = (f) => ({ color: '#2c8fb8', weight: f.properties.order >= 3 ? 3 : 1.5, opacity: 0.9 });
@@ -25,6 +26,7 @@ function FrameTo({ bounds }) {
 
 export default function WorkspacePage() {
   const { id } = useParams();
+  const notify = useToast();
   const [site, setSite] = useState(null);
   const [geo, setGeo] = useState(null);
   const [landuse, setLanduse] = useState(null);
@@ -34,6 +36,7 @@ export default function WorkspacePage() {
   const [layers, setLayers] = useState({ boundary: true, vegetation: true, water: true, streams: true, photos: true });
   const timer = useRef(null);
 
+  const loadLanduse = () => api.landuse(id).then(setLanduse).catch(() => {});
   useEffect(() => {
     let alive = true;
     api.getSite(id).then((s) => { if (!alive) return; setSite(s); setDateIndex(Math.max(0, s.observations.length - 1)); });
@@ -154,7 +157,7 @@ export default function WorkspacePage() {
         <div className="card pad">
           <h3 className="section-title">Land use</h3>
           {landuse ? <LandUseDonut data={landuse.distribution} area={siteGeo?.boundary?.properties?.area_km2} /> : <div className="empty">…</div>}
-          <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>Curated sample distribution</div>
+          <LandcoverSource landuse={landuse} siteId={site.id} onChange={loadLanduse} notify={notify} />
         </div>
         <div className="card pad">
           <h3 className="section-title">Vegetation trend</h3>
@@ -200,6 +203,63 @@ function LandUseDonut({ data, area }) {
       <ul className="ws-legend">
         {data.map((d) => <li key={d.name}><span style={{ background: d.color }} />{d.name}<b>{d.pct}%</b></li>)}
       </ul>
+    </div>
+  );
+}
+
+const LC_SOURCE_LABEL = { sample: 'Curated sample', worldcover: 'Real · ESA WorldCover', dynamicworld: 'Real · Dynamic World' };
+
+function LandcoverSource({ landuse, siteId, onChange, notify }) {
+  const fileRef = useRef(null);
+  const [scheme, setScheme] = useState('worldcover');
+  const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
+  const src = landuse?.source || 'sample';
+  const isReal = src !== 'sample';
+
+  const upload = async (e) => {
+    e.preventDefault();
+    const file = fileRef.current?.files?.[0];
+    if (!file) { notify('Choose a land-cover GeoTIFF first', 'err'); return; }
+    const fd = new FormData();
+    fd.append('image', file);
+    fd.append('scheme', scheme);
+    setBusy(true);
+    try {
+      const r = await api.uploadLandcover(siteId, fd);
+      notify(`Land cover classified (${r.source})`);
+      if (fileRef.current) fileRef.current.value = '';
+      setOpen(false);
+      await onChange();
+    } catch (err) { notify(err.message, 'err'); } finally { setBusy(false); }
+  };
+  const revert = async () => {
+    try { await api.deleteLandcover(siteId); notify('Reverted to sample land use'); await onChange(); }
+    catch (err) { notify(err.message, 'err'); }
+  };
+
+  return (
+    <div className="lc-source">
+      <div className="lc-row">
+        <span className={`lc-tag ${isReal ? 'real' : ''}`}>{isReal ? '● ' : '○ '}{LC_SOURCE_LABEL[src]}</span>
+        <button className="lc-link" onClick={() => setOpen((o) => !o)}>{open ? 'Cancel' : 'Use real data'}</button>
+      </div>
+      {open && (
+        <form onSubmit={upload} className="lc-form">
+          <p className="muted" style={{ fontSize: 11.5, margin: '0 0 8px' }}>
+            Upload a land-cover GeoTIFF clipped to this site (single band of class codes).
+          </p>
+          <input ref={fileRef} type="file" accept=".tif,.tiff,image/tiff" />
+          <div className="btn-row" style={{ marginTop: 9 }}>
+            <select value={scheme} onChange={(e) => setScheme(e.target.value)}>
+              <option value="worldcover">ESA WorldCover</option>
+              <option value="dynamicworld">Dynamic World</option>
+            </select>
+            <button className="btn primary sm" disabled={busy}>{busy ? <span className="spinner" /> : null} Classify</button>
+          </div>
+        </form>
+      )}
+      {isReal && !open && <button className="lc-link" onClick={revert} style={{ marginTop: 4 }}>Revert to sample</button>}
     </div>
   );
 }

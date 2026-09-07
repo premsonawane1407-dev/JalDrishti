@@ -9,6 +9,34 @@
 
 import { fromFile } from 'geotiff';
 import { generateHeatmapSvgFromGrid } from './heatmap.js';
+import { toDistribution } from './landuse.js';
+
+// Land-cover class-code → our display category, per source scheme.
+const LC_SCHEMES = {
+  worldcover: { 10: 'Forest', 20: 'Other', 30: 'Other', 40: 'Agriculture', 50: 'Built-up', 60: 'Other', 70: 'Other', 80: 'Water', 90: 'Water', 95: 'Forest', 100: 'Other' },
+  dynamicworld: { 0: 'Water', 1: 'Forest', 2: 'Other', 3: 'Water', 4: 'Agriculture', 5: 'Other', 6: 'Built-up', 7: 'Other', 8: 'Other' },
+};
+
+/**
+ * Classify a single-band land-cover GeoTIFF (ESA WorldCover / Dynamic World)
+ * into our land-use categories by tallying pixel codes.
+ * @returns {Promise<{source:string, distribution:Array, classified:number}>}
+ */
+export async function classifyLandcover(path, scheme = 'worldcover') {
+  const map = LC_SCHEMES[scheme] || LC_SCHEMES.worldcover;
+  const tiff = await fromFile(path);
+  const image = await tiff.getImage();
+  const rasters = await image.readRasters({ width: 220, height: 220, interleave: false, resampleMethod: 'nearest' });
+  const band = rasters[0];
+  const raw = { Agriculture: 0, Forest: 0, 'Built-up': 0, Water: 0, Other: 0 };
+  let classified = 0;
+  for (let i = 0; i < band.length; i++) {
+    const cat = map[band[i]];
+    if (cat) { raw[cat] += 1; classified += 1; }
+  }
+  if (classified === 0) throw new Error('No recognised land-cover codes — check the file or scheme.');
+  return { source: scheme, distribution: toDistribution(raw), classified };
+}
 
 const ANALYSIS_SIZE = 128; // resample to this grid for stats (fast, low memory)
 const HEATMAP_COLS = 32; // downsampled heatmap resolution

@@ -48,6 +48,9 @@ export const api = {
 
   // Analyze an uploaded GeoTIFF (compute NDVI/NDWI from its bands)
   analyzeImagery: (id, formData) => req(`/api/sites/${id}/analyze`, { method: 'POST', body: formData }),
+  // Land cover: classify an uploaded ESA WorldCover / Dynamic World raster
+  uploadLandcover: (id, formData) => req(`/api/sites/${id}/landcover`, { method: 'POST', body: formData }),
+  deleteLandcover: (id) => req(`/api/sites/${id}/landcover`, { method: 'DELETE' }),
 
   // Photos
   allPhotos: () => req('/api/photos'),
