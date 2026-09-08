@@ -85,6 +85,19 @@ const SITES = [
     ndvi: [0.36, 0.37, 0.35, 0.38, 0.36, 0.37, 0.38, 0.37],
     photos: ['Newly dug farm pond', 'Stable mixed cropping around pond'],
   },
+  {
+    // Blank site for hands-on testing: no seeded observations or photos, so you
+    // can upload your own satellite imagery / land cover and add geo-tags.
+    name: 'Panshet Dam Camping',
+    district: 'Pune',
+    state: 'Maharashtra',
+    latitude: 18.3854,
+    longitude: 73.6090,
+    intervention_type: 'Other',
+    intervention_date: null,
+    description: 'Panshet (Tanajisagar) reservoir near Pune — blank site for testing satellite-image analysis and geo-tagged uploads.',
+    blank: true,
+  },
 ];
 
 function ndwiFor(ndvi, i) {
@@ -163,6 +176,11 @@ function seed() {
       description: s.description,
     });
     const siteId = Number(info.lastInsertRowid);
+
+    if (s.blank) {
+      console.log(`Seeded ${s.name} (id=${siteId}) — blank site (no observations/photos).`);
+      continue;
+    }
 
     QUARTERS.forEach((date, i) => {
       const ndvi = s.ndvi[i];

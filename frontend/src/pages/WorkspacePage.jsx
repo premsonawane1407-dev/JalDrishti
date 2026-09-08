@@ -74,12 +74,13 @@ export default function WorkspacePage() {
   const latest = obs[obs.length - 1];
   const t = site.trend;
 
+  const hasData = obs.length > 0;
   const veg = clamp(((latest?.ndvi ?? 0) / 0.8) * 100, 0, 100);
   const water = clamp((((latest?.ndwi ?? -0.1) + 0.3) / 0.6) * 100, 0, 100);
   const trendScore = t.label === 'Improving' ? 88 : t.label === 'Declining' ? 42 : 66;
   const health = Math.round(0.5 * veg + 0.2 * water + 0.3 * trendScore);
-  const healthLabel = health >= 70 ? 'Good' : health >= 50 ? 'Moderate' : 'Low';
-  const ringColor = health >= 70 ? 'var(--improving)' : health >= 50 ? 'var(--stable)' : 'var(--declining)';
+  const healthLabel = !hasData ? 'No data yet' : health >= 70 ? 'Good' : health >= 50 ? 'Moderate' : 'Low';
+  const ringColor = !hasData ? 'var(--grey)' : health >= 70 ? 'var(--improving)' : health >= 50 ? 'var(--stable)' : 'var(--declining)';
 
   const layerDefs = { boundary: 'Boundary', vegetation: 'Vegetation (NDVI)', water: 'Water', streams: 'Drainage', photos: 'Field photos' };
 
@@ -113,8 +114,8 @@ export default function WorkspacePage() {
           <h2>{site.name}</h2>
           <div className="ws-meta"><span className="pill">{site.intervention_type}</span><TrendBadge label={t.label} pct={t.ndviChangePct} /></div>
           <div className="ws-health">
-            <div className="ring" style={{ '--v': health, '--rc': ringColor }}><span>{health}</span></div>
-            <div><div className="hl" style={{ color: ringColor }}>{healthLabel}</div><div className="hk">Watershed health<br /><span className="muted">sample composite</span></div></div>
+            <div className="ring" style={{ '--v': hasData ? health : 0, '--rc': ringColor }}><span>{hasData ? health : '—'}</span></div>
+            <div><div className="hl" style={{ color: ringColor }}>{healthLabel}</div><div className="hk">Watershed health<br /><span className="muted">{hasData ? 'sample composite' : 'add satellite data'}</span></div></div>
           </div>
           <div className="ws-facts">
             <div><b>{siteGeo?.boundary?.properties?.area_km2 ?? '—'}</b><span>km² catchment</span></div>
@@ -124,12 +125,16 @@ export default function WorkspacePage() {
         </div>
 
         {/* Timeline */}
-        <div className="map-panel ws-timeline">
-          <button className="play" onClick={() => setPlaying((p) => !p)} aria-label="Play timeline">{playing ? '❚❚' : '►'}</button>
-          <input className="ws-range" type="range" min={0} max={obs.length - 1} value={dateIndex}
-            onChange={(e) => { setPlaying(false); setDateIndex(Number(e.target.value)); }} />
-          <div className="cur">{current?.observation_date}</div>
-        </div>
+        {hasData ? (
+          <div className="map-panel ws-timeline">
+            <button className="play" onClick={() => setPlaying((p) => !p)} aria-label="Play timeline">{playing ? '❚❚' : '►'}</button>
+            <input className="ws-range" type="range" min={0} max={obs.length - 1} value={dateIndex}
+              onChange={(e) => { setPlaying(false); setDateIndex(Number(e.target.value)); }} />
+            <div className="cur">{current?.observation_date}</div>
+          </div>
+        ) : (
+          <div className="map-panel ws-timeline"><div className="cur" style={{ margin: '0 auto' }}>No satellite observations yet — add one below</div></div>
+        )}
 
         {/* Layer chips */}
         <div className="map-panel ws-layers">
@@ -161,22 +166,26 @@ export default function WorkspacePage() {
         </div>
         <div className="card pad">
           <h3 className="section-title">Vegetation trend</h3>
-          <VegTrend observations={obs} />
-          <div className="muted" style={{ fontSize: 12.5, marginTop: 4 }}>
-            NDVI {baseline?.ndvi} → {latest?.ndvi} <b style={{ color: t.ndviChangePct >= 0 ? 'var(--improving)' : 'var(--declining)' }}>({t.ndviChangePct > 0 ? '+' : ''}{t.ndviChangePct}%)</b>
-          </div>
+          {hasData ? (
+            <>
+              <VegTrend observations={obs} />
+              <div className="muted" style={{ fontSize: 12.5, marginTop: 4 }}>
+                NDVI {baseline?.ndvi} → {latest?.ndvi}
+                {t.ndviChangePct != null && <b style={{ color: t.ndviChangePct >= 0 ? 'var(--improving)' : 'var(--declining)' }}> ({t.ndviChangePct > 0 ? '+' : ''}{t.ndviChangePct}%)</b>}
+              </div>
+            </>
+          ) : <div className="empty" style={{ padding: '24px 0' }}>No observations yet.</div>}
         </div>
         <div className="card pad">
-          <h3 className="section-title">Change detection · {baseline?.observation_date?.slice(0, 4)} → {latest?.observation_date?.slice(0, 4)}</h3>
-          <BeforeAfter
-            before={`/images/${baseline?.image_filename}`}
-            after={`/images/${latest?.image_filename}`}
-            beforeLabel={baseline?.observation_date}
-            afterLabel={latest?.observation_date}
-          />
-          <div className="ws-change" style={{ color: t.ndviChangePct >= 0 ? 'var(--improving)' : 'var(--declining)' }}>
-            {t.ndviChangePct >= 0 ? '▲' : '▼'} {Math.abs(t.ndviChangePct)}% vegetation
-          </div>
+          <h3 className="section-title">Change detection{obs.length >= 2 ? ` · ${baseline.observation_date.slice(0, 4)} → ${latest.observation_date.slice(0, 4)}` : ''}</h3>
+          {obs.length >= 2 ? (
+            <>
+              <BeforeAfter before={`/images/${baseline.image_filename}`} after={`/images/${latest.image_filename}`} beforeLabel={baseline.observation_date} afterLabel={latest.observation_date} />
+              <div className="ws-change" style={{ color: t.ndviChangePct >= 0 ? 'var(--improving)' : 'var(--declining)' }}>
+                {t.ndviChangePct >= 0 ? '▲' : '▼'} {Math.abs(t.ndviChangePct)}% vegetation
+              </div>
+            </>
+          ) : <div className="empty" style={{ padding: '24px 0' }}>Add at least two dated observations to compare before/after.</div>}
         </div>
       </div>
 
